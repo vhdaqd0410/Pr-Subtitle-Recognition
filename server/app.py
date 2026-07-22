@@ -69,7 +69,9 @@ def resolve_model_path(name: ModelName) -> str:
         return str(model_path)
 
     # 2. repo-bundled model (e.g. models/faster-whisper-small/)
-    bundled = Path(__file__).resolve().parent.parent / "models" / f"faster-whisper-{name}"
+    import sys as _sys
+    _app_dir = Path(_sys.executable).parent if getattr(_sys, 'frozen', False) else Path(__file__).resolve().parent.parent
+    bundled = _app_dir / "models" / f"faster-whisper-{name}"
     if (bundled / "config.json").is_file():
         return str(bundled)
 
