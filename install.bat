@@ -1,51 +1,49 @@
 @echo off
-chcp 65001 >nul
-title PR 字幕识别安装程序
-
+title PR Subtitle Recognizer - Install
 echo.
 echo ============================================
-echo         PR 字幕识别 扩展安装程序
+echo   PR Subtitle Recognizer - Install Plugin
 echo ============================================
 echo.
 
 set "SRC=%~dp0cep-extension\PRSubtitleRecognizer"
 set "DEST=%APPDATA%\Adobe\CEP\extensions\PRSubtitleRecognizer"
 
-echo [1/5] 检查插件文件...
-
+echo [1/5] Checking plugin files...
 if not exist "%SRC%" (
-    echo [错误] 找不到插件目录：%SRC%
+    echo [ERROR] Plugin not found: %SRC%
     pause
-    exit /b
+    exit /b 1
 )
-echo [√] 插件目录存在
+echo [OK] Plugin folder found.
 echo.
 
-echo [2/5] 安装位置：%DEST%
+echo [2/5] Target: %DEST%
 echo.
 
 if exist "%DEST%" (
-    echo 检测到已安装旧版本，正在覆盖...
+    echo Old version found, removing...
     rd /S /Q "%DEST%"
 )
 echo.
 
-echo [3/5] 创建插件目录...
+echo [3/5] Creating CEP extensions folder...
 if not exist "%APPDATA%\Adobe\CEP\extensions" mkdir "%APPDATA%\Adobe\CEP\extensions"
-echo 完成。
+echo Done.
 echo.
 
-echo [4/5] 正在复制文件...
+echo [4/5] Copying plugin files...
 xcopy "%SRC%" "%DEST%" /E /I /Y
 if errorlevel 1 (
-    echo [错误] 插件复制失败！
+    echo [ERROR] Copy failed!
     pause
-    exit /b
+    exit /b 1
 )
 echo.
-echo [5/5] 安装完成！
+
+echo [5/5] Install complete!
 echo.
-echo 扩展已安装到：%DEST%
-echo 请重启 Premiere，从 Window ^> Extensions ^> PR 字幕识别 打开。
+echo Plugin installed to: %DEST%
+echo Restart Premiere, then: Window ^> Extensions ^> PR Subtitle Recognizer
 echo.
 pause
