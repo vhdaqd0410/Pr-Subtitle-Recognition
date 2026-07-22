@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.prsubtitle.recognizer" ExtensionBundleVersion="0.3.0" ExtensionBundleName="PR 字幕识别">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.prsubtitle.recognizer" ExtensionBundleVersion="0.2.0" ExtensionBundleName="PR 字幕识别">
   <ExtensionList>
-    <Extension Id="com.prsubtitle.recognizer.panel" Version="0.3.0"/>
+    <Extension Id="com.prsubtitle.recognizer.panel" Version="0.2.0"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>

@@ -1,4 +1,4 @@
-function prSubtitlePluginVersion() { return "0.3.0"; }
+function prSubtitlePluginVersion() { return "0.2.0"; }
 
 function prSubtitleActiveSequenceName() {
     var sequence = app.project.activeSequence;
