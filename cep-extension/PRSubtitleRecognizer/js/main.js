@@ -82,6 +82,28 @@
     el.addEventListener('change', function () { var c = loadConfig(); c.apiBase = apiBaseEl.value; c.apiKey = apiKeyEl.value; c.apiModel = apiModelEl.value; saveConfig(c); });
   });
 
+  // ── Translate config (independent from recognition) ──
+  var tlBaseEl = document.getElementById('translate-api-base');
+  var tlKeyEl = document.getElementById('translate-api-key');
+  var tlModelEl = document.getElementById('translate-model');
+  // Load saved
+  (function () {
+    var cfg = loadConfig();
+    if (cfg.tlBase) tlBaseEl.value = cfg.tlBase;
+    if (cfg.tlKey) tlKeyEl.value = cfg.tlKey;
+    if (cfg.tlModel) tlModelEl.value = cfg.tlModel;
+  })();
+  // Save on change
+  [tlBaseEl, tlKeyEl, tlModelEl].forEach(function (el) {
+    el.addEventListener('change', function () {
+      var c = loadConfig();
+      c.tlBase = tlBaseEl.value;
+      c.tlKey = tlKeyEl.value;
+      c.tlModel = tlModelEl.value;
+      saveConfig(c);
+    });
+  });
+
   // ── Presets ──────────────────────────────────
   var presetSelect = document.getElementById('preset-select');
   var presetFields = ['provider', 'range', 'language', 'model'].concat(
@@ -334,8 +356,9 @@
   document.getElementById('translate-btn').addEventListener('click', async function () {
     var txt = result.value;
     if (!txt) return;
-    var apiKey = apiKeyEl.value;
-    if (!apiKey) { setStatus('翻译需要先配置 API Key。', true); return; }
+    var tlBase = document.getElementById('translate-api-base').value || 'https://api.openai.com/v1';
+    var tlKey = document.getElementById('translate-api-key').value;
+    if (!tlKey) { setStatus('翻译需要先配置 API Key。', true); return; }
     setStatus('正在翻译…');
     try {
       var resp = await fetch('http://127.0.0.1:8765/translate', {
@@ -343,15 +366,16 @@
         body: JSON.stringify({
           text: txt,
           target: document.getElementById('translate-target').value,
-          api_base: apiBaseEl.value,
-          api_key: apiKey,
-          model: document.getElementById('translate-model').value,
+          api_base: tlBase,
+          api_key: tlKey,
+          model: document.getElementById('translate-model').value || 'gpt-4o-mini',
         }),
       });
       if (!resp.ok) throw new Error((await resp.json()).detail);
       var data = await resp.json();
       result.value = data.text;
       if (srtPath) fs.writeFileSync(srtPath, data.text, { encoding: 'utf8' });
+      saveHistory();
       setStatus('翻译完成。');
     } catch (e) { setStatus('翻译失败：' + e.message, true); }
   });

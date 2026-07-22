@@ -78,9 +78,17 @@
             </select>
           </label>
           <label style="flex:1">模型
-            <input type="text" id="translate-model" value="gpt-4o-mini" placeholder="gpt-4o-mini">
+            <input type="text" id="translate-model" placeholder="gpt-4o-mini">
           </label>
           <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px;margin-top:16px">翻译</button>
+        </div>
+        <div class="row">
+          <label style="flex:1">API 地址
+            <input type="text" id="translate-api-base" placeholder="https://api.openai.com/v1">
+          </label>
+          <label style="flex:1">API Key
+            <input type="password" id="translate-api-key" placeholder="sk-...">
+          </label>
         </div>
       </div>
 
