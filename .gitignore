@@ -1,6 +1,3 @@
-# Whisper models (too large for Git — copy manually or let faster-whisper download)
-models/
-
 # Python
 __pycache__/
 *.pyc
