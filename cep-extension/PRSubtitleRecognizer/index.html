@@ -8,19 +8,16 @@
   </head>
   <body>
     <main>
-      <!-- Header -->
       <div class="header">
         <h1>PR 字幕识别</h1>
         <span id="version">v1.0</span>
         <span id="server-dot" class="dot off" title="服务状态"></span>
       </div>
 
-      <!-- Sequence -->
       <div class="card">
         <p id="sequence-name">请先在 Premiere 中打开一个序列</p>
       </div>
 
-      <!-- Presets -->
       <div class="card" id="preset-card">
         <div class="row">
           <label style="flex:1">预设
@@ -31,7 +28,6 @@
         </div>
       </div>
 
-      <!-- Settings -->
       <div class="card">
         <div class="row">
           <label>识别方式 <select id="provider"><option value="local">本地模型</option><option value="openai">在线 API</option></select></label>
@@ -48,36 +44,33 @@
         </div>
       </div>
 
-      <!-- Actions -->
       <div class="btn-row">
         <button id="transcribe" class="primary" title="F5">🎤 开始识别 (F5)</button>
         <label class="toggle" title="识别项目内所有序列"><input type="checkbox" id="batch-mode"> 批量</label>
       </div>
 
-      <!-- Progress -->
       <div id="progress-area" style="display:none">
         <div class="progress-bar"><div id="progress-fill"></div></div>
         <p id="progress-text">0%</p>
       </div>
 
-      <!-- Status -->
       <p id="status" role="status">请先启动本地服务，然后点击上方按钮开始。</p>
 
-      <!-- Result -->
       <textarea id="result" placeholder="识别结果将显示在此处…&#10;&#10;可直接编辑后导入。"></textarea>
 
-      <!-- Translate -->
       <div class="card" id="translate-card" style="display:none">
+        <div class="row">
+          <label style="flex:1">翻译为
+            <select id="translate-target">
+              <option value="en">英文</option>
+              <option value="zh">中文</option>
+              <option value="ja">日文</option>
+              <option value="ko">韩文</option>
+            </select>
+          </label>
+        </div>
         <div id="translate-config" style="display:none">
           <div class="row">
-            <label style="flex:1">翻译为
-              <select id="translate-target">
-                <option value="en">英文</option>
-                <option value="zh">中文</option>
-                <option value="ja">日文</option>
-                <option value="ko">韩文</option>
-              </select>
-            </label>
             <label style="flex:1">API 服务
               <select id="translate-api-preset">
                 <option value="">自定义</option>
@@ -86,11 +79,6 @@
                 <option value="Groq">Groq</option>
                 <option value="SiliconFlow">SiliconFlow</option>
               </select>
-            </label>
-          </div>
-          <div class="row">
-            <label style="flex:1">API 地址
-              <input type="text" id="translate-api-base" placeholder="https://api.deepseek.com/v1">
             </label>
             <label style="flex:1">模型
               <select id="translate-model-preset">
@@ -107,24 +95,24 @@
             </label>
           </div>
           <div class="row">
+            <label style="flex:1">API 地址
+              <input type="text" id="translate-api-base" placeholder="https://api.deepseek.com/v1">
+            </label>
             <label style="flex:1">API Key
               <input type="password" id="translate-api-key" placeholder="sk-...">
+              <button id="translate-save" class="secondary" style="padding:6px 14px;font-size:12px;margin-top:3px;width:auto">保存配置</button>
             </label>
-            <button id="translate-save" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px;margin-top:16px">保存配置</button>
           </div>
         </div>
-        <div id="translate-ready" style="display:none">
-          <div class="row">
-            <label style="flex:1"><span id="translate-status-text">已配置</span>
-              <a href="#" id="translate-edit" style="font-size:11px;color:#888;margin-left:6px">修改</a>
-            </label>
-            <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px">翻译</button>
-          </div>
+        <div class="row" id="translate-ready" style="display:none">
+          <label style="flex:0;display:flex;align-items:flex-end">
+            <span id="translate-status-text" style="font-size:11px;color:#888;white-space:nowrap"></span>
+            <a href="#" id="translate-edit" style="font-size:11px;color:#666;margin-left:4px">修改</a>
+          </label>
+          <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px">翻译</button>
         </div>
-      </div>
       </div>
 
-      <!-- History -->
       <div class="card" id="history-card" style="display:none">
         <div class="row">
           <label>历史记录 <select id="history-select"><option value="">-- 选择 --</option></select></label>
@@ -132,7 +120,6 @@
         </div>
       </div>
 
-      <!-- Output buttons -->
       <div class="btn-row">
         <button id="add-captions" disabled>添加到当前序列</button>
         <button id="export-srt" class="secondary" disabled title="Ctrl+S">导出 SRT (Ctrl+S)</button>
