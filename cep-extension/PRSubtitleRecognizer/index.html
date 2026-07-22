@@ -68,28 +68,58 @@
 
       <!-- Translate -->
       <div class="card" id="translate-card" style="display:none">
-        <div class="row">
-          <label style="flex:1">翻译为
-            <select id="translate-target">
-              <option value="en">英文</option>
-              <option value="zh">中文</option>
-              <option value="ja">日文</option>
-              <option value="ko">韩文</option>
-            </select>
-          </label>
-          <label style="flex:1">模型
-            <input type="text" id="translate-model" placeholder="gpt-4o-mini">
-          </label>
-          <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px;margin-top:16px">翻译</button>
+        <div id="translate-config" style="display:none">
+          <div class="row">
+            <label style="flex:1">翻译为
+              <select id="translate-target">
+                <option value="en">英文</option>
+                <option value="zh">中文</option>
+                <option value="ja">日文</option>
+                <option value="ko">韩文</option>
+              </select>
+            </label>
+            <label style="flex:1">API 服务
+              <select id="translate-api-preset">
+                <option value="">自定义</option>
+                <option value="DeepSeek">DeepSeek</option>
+                <option value="OpenAI">OpenAI</option>
+                <option value="Groq">Groq</option>
+                <option value="SiliconFlow">SiliconFlow</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <label style="flex:1">API 地址
+              <input type="text" id="translate-api-base" placeholder="https://api.deepseek.com/v1">
+            </label>
+            <label style="flex:1">模型
+              <select id="translate-model-preset">
+                <option value="">自定义</option>
+                <option value="deepseek-chat">deepseek-chat</option>
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                <option value="llama-3.3-70b-versatile">llama-3.3-70b</option>
+                <option value="Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B</option>
+              </select>
+              <input type="text" id="translate-model" style="display:none" placeholder="自定义模型名">
+            </label>
+          </div>
+          <div class="row">
+            <label style="flex:1">API Key
+              <input type="password" id="translate-api-key" placeholder="sk-...">
+            </label>
+            <button id="translate-save" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px;margin-top:16px">保存配置</button>
+          </div>
         </div>
-        <div class="row">
-          <label style="flex:1">API 地址
-            <input type="text" id="translate-api-base" placeholder="https://api.openai.com/v1">
-          </label>
-          <label style="flex:1">API Key
-            <input type="password" id="translate-api-key" placeholder="sk-...">
-          </label>
+        <div id="translate-ready" style="display:none">
+          <div class="row">
+            <label style="flex:1"><span id="translate-status-text">已配置</span>
+              <a href="#" id="translate-edit" style="font-size:11px;color:#888;margin-left:6px">修改</a>
+            </label>
+            <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px">翻译</button>
+          </div>
         </div>
+      </div>
       </div>
 
       <!-- History -->

@@ -339,8 +339,13 @@ def translate_text(request: TranslateRequest) -> dict[str, str]:
     target_name = lang_names.get(request.target, request.target)
     prompt = (
         f"Translate the following SRT subtitle content to {target_name}. "
-        "Preserve the SRT format (index numbers, timestamps) exactly. "
-        "Only translate the text content:\n\n"
+        "For each subtitle entry, output the original text on one line "
+        f"followed by the translated text on the next line. "
+        "Preserve all SRT index numbers and timestamps exactly. "
+        "Format:\n"
+        "1\n00:00:01,000 --> 00:00:03,000\n"
+        "Original text here\n"
+        "Translated text here\n\n"
         f"{request.text}"
     )
     body = json.dumps({

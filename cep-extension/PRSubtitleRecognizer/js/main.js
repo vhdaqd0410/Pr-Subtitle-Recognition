@@ -86,22 +86,99 @@
   var tlBaseEl = document.getElementById('translate-api-base');
   var tlKeyEl = document.getElementById('translate-api-key');
   var tlModelEl = document.getElementById('translate-model');
-  // Load saved
+  var tlModelPresetEl = document.getElementById('translate-model-preset');
+  var tlApiPresetEl = document.getElementById('translate-api-preset');
+  var tlConfigDiv = document.getElementById('translate-config');
+  var tlReadyDiv = document.getElementById('translate-ready');
+  var tlStatusText = document.getElementById('translate-status-text');
+
+  // API presets
+  var API_PRESETS = {
+    DeepSeek:    'https://api.deepseek.com/v1',
+    OpenAI:      'https://api.openai.com/v1',
+    Groq:        'https://api.groq.com/openai/v1',
+    SiliconFlow: 'https://api.siliconflow.cn/v1',
+  };
+
+  // Load saved config
   (function () {
     var cfg = loadConfig();
-    if (cfg.tlBase) tlBaseEl.value = cfg.tlBase;
-    if (cfg.tlKey) tlKeyEl.value = cfg.tlKey;
-    if (cfg.tlModel) tlModelEl.value = cfg.tlModel;
-  })();
-  // Save on change
-  [tlBaseEl, tlKeyEl, tlModelEl].forEach(function (el) {
-    el.addEventListener('change', function () {
-      var c = loadConfig();
-      c.tlBase = tlBaseEl.value;
-      c.tlKey = tlKeyEl.value;
-      c.tlModel = tlModelEl.value;
-      saveConfig(c);
+    // Find preset match
+    var preset = '';
+    Object.keys(API_PRESETS).forEach(function (k) {
+      if (API_PRESETS[k] === cfg.tlBase) preset = k;
     });
+    tlApiPresetEl.value = preset;
+    if (cfg.tlBase && !preset) tlBaseEl.value = cfg.tlBase;
+    if (preset) tlBaseEl.value = API_PRESETS[preset];
+    if (cfg.tlKey) tlKeyEl.value = cfg.tlKey;
+
+    // Model: check if it matches a preset
+    var modelMatch = false;
+    for (var i = 0; i < tlModelPresetEl.options.length; i++) {
+      if (tlModelPresetEl.options[i].value === cfg.tlModel) { modelMatch = true; break; }
+    }
+    if (modelMatch) {
+      tlModelPresetEl.value = cfg.tlModel;
+      tlModelEl.style.display = 'none';
+    } else if (cfg.tlModel) {
+      tlModelPresetEl.value = '';
+      tlModelEl.value = cfg.tlModel;
+      tlModelEl.style.display = '';
+    }
+
+    // If fully configured, show ready mode
+    if (cfg.tlKey) {
+      showTranslateReady(cfg);
+    } else {
+      showTranslateConfig();
+    }
+  })();
+
+  function getTranslateModel() {
+    return tlModelPresetEl.value || tlModelEl.value || 'gpt-4o-mini';
+  }
+
+  function showTranslateConfig() {
+    tlConfigDiv.style.display = '';
+    tlReadyDiv.style.display = 'none';
+  }
+  function showTranslateReady(cfg) {
+    tlConfigDiv.style.display = 'none';
+    tlReadyDiv.style.display = '';
+    var p = tlApiPresetEl.value || '自定义';
+    var m = getTranslateModel();
+    tlStatusText.textContent = p + ' / ' + m + ' 已配置';
+  }
+
+  // API preset → auto-fill address
+  tlApiPresetEl.addEventListener('change', function () {
+    if (this.value && API_PRESETS[this.value]) {
+      tlBaseEl.value = API_PRESETS[this.value];
+    }
+  });
+
+  // Model preset → toggle custom input
+  tlModelPresetEl.addEventListener('change', function () {
+    tlModelEl.style.display = this.value ? 'none' : '';
+  });
+
+  // Save config
+  document.getElementById('translate-save').addEventListener('click', function () {
+    if (!tlKeyEl.value) { setStatus('请输入 API Key。', true); return; }
+    var c = loadConfig();
+    c.tlBase = tlBaseEl.value;
+    c.tlKey = tlKeyEl.value;
+    c.tlModel = getTranslateModel();
+    saveConfig(c);
+    showTranslateReady(c);
+    setStatus('翻译配置已保存。');
+  });
+
+  // Edit config
+  document.getElementById('translate-edit').addEventListener('click', function (e) {
+    e.preventDefault();
+    showTranslateConfig();
   });
 
   // ── Presets ──────────────────────────────────
