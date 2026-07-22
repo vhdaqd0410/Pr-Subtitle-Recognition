@@ -95,8 +95,11 @@ def get_cpu_model(model_path: str) -> WhisperModel:
 def get_model(name: ModelName) -> tuple[WhisperModel, str, str]:
     """Download once, then prefer CUDA (float16) with a CPU fallback."""
     model_path = resolve_model_path(name)
+    force_cpu = os.environ.get("PR_SUBTITLE_DEVICE", "").lower() == "cpu"
     cuda_key = (model_path, "cuda")
     cpu_key = (model_path, "cpu")
+    if force_cpu:
+        return get_cpu_model(model_path), "cpu", model_path
     if cuda_key in models:
         return models[cuda_key], "cuda", model_path
     if cpu_key in models:
