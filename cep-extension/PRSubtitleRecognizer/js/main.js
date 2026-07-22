@@ -391,6 +391,11 @@
     result.value = await waitForJob(job.job_id);
     srtPath = output.replace(/\.wav$/i, '.srt');
     fs.writeFileSync(srtPath, result.value, { encoding: 'utf8' });
+
+    // Import SRT into project panel
+    var importMsg = await evalHost('prSubtitleImportSrt(' + JSON.stringify(srtPath) + ')');
+    if (importMsg.indexOf('OK:') !== 0) throw new Error('导入项目面板失败：' + importMsg);
+
     addCaptions.disabled = false;
     exportSrt.disabled = false;
     document.getElementById('translate-card').style.display = '';
