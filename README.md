@@ -31,9 +31,11 @@ Premiere Pro CEP 扩展面板。将序列音频导出为 WAV，通过本地 fast
 
 1. 下载 [portable.zip](https://github.com/vhdaqd0410/Pr-Subtitle-Recognition/releases) 并解压
 2. 双击 `启用CEP调试模式.reg` → 确认
-3. 复制 `cep-extension\PRSubtitleRecognizer` 到 `%APPDATA%\Adobe\CEP\extensions\`
+3. 双击 `安装扩展.bat`（一键复制到 CEP 目录）
 4. 双击 `启动服务.bat`
 5. 打开 Premiere，`Window > Extensions > PR 字幕识别`
+
+> 也可手动：复制 `cep-extension\PRSubtitleRecognizer` 到 `%APPDATA%\Adobe\CEP\extensions\`
 
 ## 在线 API 配置
 
