@@ -1,0 +1,17 @@
+:root { color: #eee; background: #252525; font: 13px/1.45 Arial, "Microsoft YaHei", sans-serif; }
+body { margin: 0; }
+main { padding: 18px; }
+h1 { font-size: 18px; margin: 0 0 4px; }
+.hint, .filename { color: #bbb; margin: 4px 0 14px; }
+.file-picker, button { display: block; box-sizing: border-box; width: 100%; border: 0; border-radius: 4px; padding: 9px 10px; color: #fff; background: #4c78b8; cursor: pointer; text-align: center; }
+.file-picker input { display: none; }
+.fields { display: flex; gap: 10px; margin: 10px 0; }
+.fields label { flex: 1; color: #ccc; }
+select { width: 100%; margin-top: 4px; padding: 6px; color: #eee; background: #3a3a3a; border: 1px solid #555; }
+button { margin: 10px 0; font-weight: bold; }
+button:disabled { opacity: .45; cursor: default; }
+#status { min-height: 20px; color: #9ed09e; }
+#status.error { color: #ff9b9b; }
+.progress { height: 5px; margin: 6px 0 12px; overflow: hidden; border-radius: 4px; background: #3b3b3b; }
+#progress-bar { width: 0; height: 100%; background: #4c9cff; transition: width .25s ease; }
+textarea { display: block; width: 100%; height: 130px; box-sizing: border-box; resize: vertical; padding: 8px; color: #eee; background: #181818; border: 1px solid #555; }

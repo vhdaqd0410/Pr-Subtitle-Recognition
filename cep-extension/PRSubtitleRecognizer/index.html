@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://127.0.0.1:8765; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:8765">
+    <title>PR Subtitle Recognizer</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <main>
+      <h1>PR Subtitle Recognizer</h1>
+      <p class="hint">Exports the full active-sequence mix to WAV, transcribes it locally, then creates a subtitle track.</p>
+      <p id="sequence-name" class="filename">Open a Premiere sequence before starting.</p>
+      <div class="fields">
+        <label>Language<select id="language"><option value="auto">Auto</option><option value="zh">Chinese</option><option value="en">English</option><option value="ja">Japanese</option><option value="ko">Korean</option></select></label>
+        <label>Model<select id="model"><option value="tiny">tiny (fastest)</option><option value="base">base</option><option value="small" selected>small (recommended)</option><option value="medium">medium (accurate)</option><option value="large-v3">large-v3 (best)</option></select></label>
+      </div>
+      <button id="transcribe">Transcribe active sequence</button>
+      <p id="status" role="status">Start the local server first.</p>
+      <div class="progress" aria-label="识别进度"><div id="progress-bar"></div></div>
+      <textarea id="result" aria-label="SRT result" placeholder="The transcription result appears here"></textarea>
+      <button id="add-captions" disabled>按默认样式添加到当前序列</button>
+    </main>
+    <script src="js/CSInterface.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
