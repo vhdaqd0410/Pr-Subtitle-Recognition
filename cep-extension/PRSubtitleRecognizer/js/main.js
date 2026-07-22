@@ -360,18 +360,19 @@
   }
 
   // ── Single sequence transcribe ────────────────
-  async function transcribeOne(outputOverride) {
+  async function transcribeOne(seqName) {
     var cache = path.join(baseDir, 'audio');
     fs.mkdirSync(cache, { recursive: true });
-    var output = outputOverride || path.join(cache, 'seq-' + Date.now() + '.wav');
+    var safeName = (seqName || 'sequence').replace(/[\\/:*?"<>|]/g, '_');
+    var output = path.join(cache, safeName + '-' + Date.now() + '.wav');
     var preset = findWavePreset();
     var rangeMode = document.getElementById('range').value;
     var labels = { all: '全部', work: '入出点', selected: '选中片段' };
-    setStatus('正在导出（' + labels[rangeMode] + '）…');
+    setStatus('[' + safeName + '] 正在导出（' + labels[rangeMode] + '）…');
     var exp = await evalHost('prSubtitleExportActiveSequence(' + JSON.stringify(output) + ',' + JSON.stringify(preset) + ',' + JSON.stringify(rangeMode) + ')');
     if (exp.indexOf('OK:') !== 0) throw new Error(exp);
 
-    setStatus('正在创建识别任务…');
+    setStatus('[' + safeName + '] 正在识别…');
     var body = {
       media_path: output,
       language: document.getElementById('language').value,
@@ -393,6 +394,7 @@
     fs.writeFileSync(srtPath, result.value, { encoding: 'utf8' });
 
     // Import SRT into project panel
+    setStatus('[' + safeName + '] 正在导入项目面板…');
     var importMsg = await evalHost('prSubtitleImportSrt(' + JSON.stringify(srtPath) + ')');
     if (importMsg.indexOf('OK:') !== 0) throw new Error('导入项目面板失败：' + importMsg);
 
@@ -400,7 +402,7 @@
     exportSrt.disabled = false;
     document.getElementById('translate-card').style.display = '';
     saveHistory();
-    setStatus('识别完成，SRT 已导入项目面板。');
+    setStatus('>>> [' + safeName + '] 处理完成，已导入项目面板 <<<');
   }
 
   // ── Batch mode checkbox ───────────────────────
@@ -477,24 +479,26 @@
           if (act.indexOf('OK:') !== 0) { setStatus('跳过：' + act, true); continue; }
           await wait(800);
 
+          var seqName = seqs[i];
+          setStatus('>>> 开始处理 [' + seqName + '] (' + (i + 1) + '/' + seqs.length + ') <<<');
           var ok = false;
           for (var retry = 0; retry < 3; retry++) {
             try {
-              await transcribeOne(path.join(baseDir, 'audio', 'batch-' + i + '.wav'));
+              await transcribeOne(seqName);
               allSrt += result.value + '\n';
               ok = true; break;
             } catch (e) {
               if (retry < 2 && e.message === 'Failed to fetch') {
                 setStatus('服务响应超时，重试 ' + (retry + 1) + '/2…');
                 await wait(2000);
-              } else { allSrt += '; ' + seqs[i] + ' 失败: ' + e.message + '\n'; break; }
+              } else { allSrt += '; ' + seqName + ' 失败: ' + e.message + '\n'; break; }
             }
           }
         }
         result.value = allSrt;
         setStatus('批量完成：' + seqs.length + ' 个序列已处理。');
       } else {
-        await transcribeOne(null);
+        await transcribeOne(sequenceName.textContent.replace('当前序列：', ''));
       }
     } catch (err) {
       setStatus('任务失败：' + err.message, true);
