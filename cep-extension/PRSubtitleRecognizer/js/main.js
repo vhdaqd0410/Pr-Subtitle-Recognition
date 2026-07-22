@@ -470,7 +470,7 @@
           target: document.getElementById('translate-target').value,
           api_base: tlBase,
           api_key: tlKey,
-          model: document.getElementById('translate-model').value || 'gpt-4o-mini',
+          model: getTranslateModel(),
         }),
       });
       if (!resp.ok) throw new Error((await resp.json()).detail);
