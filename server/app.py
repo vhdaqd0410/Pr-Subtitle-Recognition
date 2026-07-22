@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import threading
 import time
 import traceback
+import urllib.request
 import uuid
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -38,6 +40,10 @@ class SequenceTranscriptionRequest(BaseModel):
     media_path: str
     language: str = "auto"
     model: ModelName = "small"
+    provider: str = "local"          # "local" | "openai"
+    api_base: str = ""                # OpenAI API base URL
+    api_key: str = ""                 # API key
+    api_model: str = "whisper-1"      # API model name
 
 
 def timestamp(seconds: float) -> str:
@@ -61,6 +67,84 @@ def to_srt(
         if duration and progress_callback:
             percentage = min(97, max(8, int(segment.end / duration * 100)))
             progress_callback(percentage, f"正在识别语音：{timestamp(segment.end).replace(',', '.')} / {timestamp(duration).replace(',', '.')}")
+    return "\n\n".join(blocks) + ("\n" if blocks else "")
+
+
+def transcribe_openai(
+    media_path: Path,
+    language: str,
+    api_base: str,
+    api_key: str,
+    api_model: str,
+    progress_callback: Callable[[int, str], None] | None = None,
+) -> str:
+    """Transcribe via OpenAI Whisper API (or compatible endpoint)."""
+    base = api_base.rstrip("/")
+    url = f"{base}/audio/transcriptions"
+    if progress_callback:
+        progress_callback(10, "正在上传音频至 API…")
+
+    # Build multipart form data manually
+    boundary = "----WhisperBoundary" + uuid.uuid4().hex[:16]
+    body_lines: list[bytes] = []
+
+    def _add_field(name: str, value: str) -> None:
+        body_lines.append(f"--{boundary}".encode())
+        body_lines.append(f'Content-Disposition: form-data; name="{name}"'.encode())
+        body_lines.append(b"")
+        body_lines.append(value.encode())
+
+    _add_field("model", api_model)
+    _add_field("response_format", "verbose_json")
+    if language and language != "auto":
+        _add_field("language", language)
+
+    # File part
+    file_bytes = media_path.read_bytes()
+    filename = media_path.name
+    body_lines.append(f"--{boundary}".encode())
+    body_lines.append(f'Content-Disposition: form-data; name="file"; filename="{filename}"'.encode())
+    body_lines.append(b"Content-Type: application/octet-stream")
+    body_lines.append(b"")
+    body_lines.append(file_bytes)
+    body_lines.append(f"--{boundary}--".encode())
+    body_lines.append(b"")
+
+    body = b"\r\n".join(body_lines)
+
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        },
+        method="POST",
+    )
+
+    if progress_callback:
+        progress_callback(20, "正在等待 API 识别结果…")
+    try:
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode() if e.fp else str(e)
+        raise RuntimeError(f"API 请求失败 ({e.code}): {detail}") from e
+
+    # Parse verbose_json response
+    segments = data.get("segments", [])
+    if not segments:
+        text = data.get("text", "")
+        if text:
+            # Fallback: create a single segment from full text
+            return f"1\n00:00:00,000 --> 00:00:05,000\n{text.strip()}\n"
+        raise RuntimeError("API 未返回识别结果。")
+
+    blocks: list[str] = []
+    for idx, seg in enumerate(segments, start=1):
+        seg_text = seg.get("text", "").strip()
+        if seg_text:
+            blocks.append(f"{idx}\n{timestamp(seg['start'])} --> {timestamp(seg['end'])}\n{seg_text}")
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
@@ -166,10 +250,18 @@ def update_job(job_id: str, progress: int, message: str, state: str = "running")
 
 def run_sequence_job(job_id: str, request: SequenceTranscriptionRequest) -> None:
     try:
-        result = transcribe_file(
-            Path(request.media_path), request.language, request.model,
-            lambda progress, message: update_job(job_id, progress, message),
-        )
+        if request.provider == "openai" and request.api_key:
+            result = transcribe_openai(
+                Path(request.media_path), request.language,
+                request.api_base or "https://api.openai.com/v1",
+                request.api_key, request.api_model,
+                lambda progress, message: update_job(job_id, progress, message),
+            )
+        else:
+            result = transcribe_file(
+                Path(request.media_path), request.language, request.model,
+                lambda progress, message: update_job(job_id, progress, message),
+            )
         with jobs_lock:
             jobs[job_id].update(
                 state="completed", progress=100, message="识别完成，正在生成字幕。",
