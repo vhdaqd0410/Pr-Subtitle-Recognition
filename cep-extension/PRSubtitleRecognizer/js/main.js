@@ -398,21 +398,69 @@
     setStatus('识别完成，SRT 已导入项目面板。');
   }
 
+  // ── Batch mode checkbox ───────────────────────
+  var batchModeEl = document.getElementById('batch-mode');
+  var batchListEl = document.getElementById('batch-list');
+  var batchSeqDiv = document.getElementById('batch-sequences');
+  var batchCountEl = document.getElementById('batch-count');
+
+  batchModeEl.addEventListener('change', function () {
+    if (this.checked) {
+      loadBatchList();
+    } else {
+      batchListEl.style.display = 'none';
+    }
+  });
+
+  function loadBatchList() {
+    evalHost('prSubtitleListSequences()').then(function (r) {
+      if (r.indexOf('OK:') !== 0) { batchSeqDiv.innerHTML = '<span style="color:#f66">读取失败</span>'; return; }
+      var seqs = JSON.parse(r.slice(3));
+      var html = '';
+      seqs.forEach(function (s) {
+        html += '<label class="toggle" style="display:block;margin-bottom:3px"><input type="checkbox" class="batch-cb" value="' + s.replace(/"/g,'&quot;') + '" checked> ' + s + '</label>';
+      });
+      batchSeqDiv.innerHTML = html;
+      batchListEl.style.display = '';
+      updateBatchCount();
+    });
+  }
+
+  function getCheckedSequences() {
+    var cbs = document.querySelectorAll('.batch-cb:checked');
+    return Array.prototype.map.call(cbs, function (cb) { return cb.value; });
+  }
+
+  function updateBatchCount() {
+    var checked = getCheckedSequences().length;
+    var total = document.querySelectorAll('.batch-cb').length;
+    batchCountEl.textContent = checked + '/' + total + ' 已选';
+  }
+
+  batchSeqDiv.addEventListener('change', updateBatchCount);
+
+  document.getElementById('batch-select-all').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelectorAll('.batch-cb').forEach(function (cb) { cb.checked = true; });
+    updateBatchCount();
+  });
+  document.getElementById('batch-deselect-all').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelectorAll('.batch-cb').forEach(function (cb) { cb.checked = false; });
+    updateBatchCount();
+  });
+
   // ── Transcribe button ─────────────────────────
   document.getElementById('transcribe').addEventListener('click', async function () {
     result.value = ''; srtPath = ''; addCaptions.disabled = true; exportSrt.disabled = true;
     setProgress(0); progressArea.style.display = '';
     try {
-      var batchMode = document.getElementById('batch-mode').checked;
+      var batchMode = batchModeEl.checked;
       if (batchMode) {
-        // Batch: all sequences
-        var listResult = await evalHost('prSubtitleListSequences()');
-        if (listResult.indexOf('OK:') !== 0) throw new Error(listResult);
-        var seqs = JSON.parse(listResult.slice(3));
-        if (seqs.length === 0) throw new Error('项目中没有序列。');
+        var seqs = getCheckedSequences();
+        if (seqs.length === 0) throw new Error('请勾选至少一个序列。');
         setStatus('批量模式：共 ' + seqs.length + ' 个序列');
 
-        // Ensure server is running before starting
         try { await fetch('http://127.0.0.1:8765/health'); } catch (_) {
           throw new Error('服务未启动，请先双击 启动服务.bat。');
         }
@@ -422,9 +470,8 @@
           setStatus('批量 (' + (i + 1) + '/' + seqs.length + ')：' + seqs[i]);
           var act = await evalHost('prSubtitleActivateSequence(' + JSON.stringify(seqs[i]) + ')');
           if (act.indexOf('OK:') !== 0) { setStatus('跳过：' + act, true); continue; }
-          await wait(800); // Let Premiere settle
+          await wait(800);
 
-          // Retry loop for server availability
           var ok = false;
           for (var retry = 0; retry < 3; retry++) {
             try {

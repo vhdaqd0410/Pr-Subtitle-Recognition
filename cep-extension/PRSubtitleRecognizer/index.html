@@ -49,6 +49,15 @@
         <label class="toggle" title="识别项目内所有序列"><input type="checkbox" id="batch-mode"> 批量</label>
       </div>
 
+      <div id="batch-list" class="card" style="display:none">
+        <div style="margin-bottom:4px">
+          <a href="#" id="batch-select-all" style="font-size:11px;color:#5a9cf8;margin-right:8px">全选</a>
+          <a href="#" id="batch-deselect-all" style="font-size:11px;color:#888">取消全选</a>
+          <span style="font-size:11px;color:#666;margin-left:8px" id="batch-count"></span>
+        </div>
+        <div id="batch-sequences" style="max-height:120px;overflow-y:auto"></div>
+      </div>
+
       <div id="progress-area" style="display:none">
         <div class="progress-bar"><div id="progress-fill"></div></div>
         <p id="progress-text">0%</p>
