@@ -58,6 +58,7 @@ def to_srt(
 
 def resolve_model_path(name: ModelName) -> str:
     """Return an already-local model directory, or download it into the HF cache."""
+    # 1. explicit env var override
     local_model_dir = os.environ.get("PR_SUBTITLE_MODEL_DIR")
     if local_model_dir:
         model_path = Path(local_model_dir)
@@ -66,6 +67,13 @@ def resolve_model_path(name: ModelName) -> str:
                 "PR_SUBTITLE_MODEL_DIR must point to a faster-whisper model folder containing config.json"
             )
         return str(model_path)
+
+    # 2. repo-bundled model (e.g. models/faster-whisper-small/)
+    bundled = Path(__file__).resolve().parent.parent / "models" / f"faster-whisper-{name}"
+    if (bundled / "config.json").is_file():
+        return str(bundled)
+
+    # 3. download from Hugging Face
     try:
         return download_model(name, cache_dir=os.environ.get("PR_SUBTITLE_MODEL_CACHE"))
     except Exception as error:
