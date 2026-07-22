@@ -1,35 +1,64 @@
 /* global require, CSInterface */
 (function () {
-  const fs = require('fs');
-  const os = require('os');
-  const path = require('path');
-  const status = document.getElementById('status');
-  const result = document.getElementById('result');
-  const addCaptions = document.getElementById('add-captions');
-  const sequenceName = document.getElementById('sequence-name');
-  const progressBar = document.getElementById('progress-bar');
-  const csInterface = new CSInterface();
-  let srtPath = '';
-  const CONFIG_FILE = path.join(os.tmpdir(), 'PRSubtitleRecognizer', 'config.json');
+  var fs = require('fs');
+  var os = require('os');
+  var path = require('path');
+  var status = document.getElementById('status');
+  var result = document.getElementById('result');
+  var addCaptions = document.getElementById('add-captions');
+  var exportSrt = document.getElementById('export-srt');
+  var sequenceName = document.getElementById('sequence-name');
+  var progressFill = document.getElementById('progress-fill');
+  var progressText = document.getElementById('progress-text');
+  var progressArea = document.getElementById('progress-area');
+  var serverDot = document.getElementById('server-dot');
+  var versionEl = document.getElementById('version');
+  var csInterface = new CSInterface();
+  var srtPath = '';
+  var CONFIG_FILE = path.join(os.tmpdir(), 'PRSubtitleRecognizer', 'config.json');
 
-  function setProgress(percentage) { progressBar.style.width = Math.max(0, Math.min(100, percentage)) + '%'; }
-  function setStatus(message, isError) {
-    status.textContent = message; status.className = isError ? 'error' : '';
-    var match = message.match(/（(\d+)%）/);
-    if (match) setProgress(Number(match[1]));
+  function setProgress(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    progressFill.style.width = pct + '%';
+    progressText.textContent = Math.round(pct) + '%';
   }
-  function evalHost(script) { return new Promise(function (resolve) { csInterface.evalScript(script, resolve); }); }
-  function wait(milliseconds) { return new Promise(function (resolve) { setTimeout(resolve, milliseconds); }); }
+  function setStatus(msg, isError) {
+    status.textContent = msg;
+    status.className = isError ? 'error' : (msg.indexOf('完成') >= 0 ? 'success' : '');
+  }
+  function evalHost(script) { return new Promise(function (r) { csInterface.evalScript(script, r); }); }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  // ── Settings persistence ──────────────────────
+  // ── Version ──────────────────────────────────
+  evalHost('prSubtitlePluginVersion()').then(function (v) {
+    if (v) versionEl.textContent = 'v' + v;
+    serverDot.className = 'dot on';
+    serverDot.title = 'Premiere 已连接';
+  }).catch(function () { /* ignore */ });
+
+  // ── Server health check ──────────────────────
+  function checkServer() {
+    fetch('http://127.0.0.1:8765/health')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        serverDot.className = 'dot on';
+        serverDot.title = '服务正常 (' + d.device.toUpperCase() + ')';
+      })
+      .catch(function () {
+        serverDot.className = 'dot off';
+        serverDot.title = '服务未启动';
+      });
+  }
+  checkServer();
+  setInterval(checkServer, 10000);
+
+  // ── Settings persistence ─────────────────────
   function loadConfig() {
     try {
       var dir = path.dirname(CONFIG_FILE);
       fs.mkdirSync(dir, { recursive: true });
-      if (fs.existsSync(CONFIG_FILE)) {
-        return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-      }
-    } catch (_) { /* ignore */ }
+      if (fs.existsSync(CONFIG_FILE)) return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    } catch (_) {}
     return {};
   }
   function saveConfig(obj) {
@@ -37,10 +66,10 @@
       var dir = path.dirname(CONFIG_FILE);
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(CONFIG_FILE, JSON.stringify(obj, null, 2), 'utf8');
-    } catch (_) { /* ignore */ }
+    } catch (_) {}
   }
 
-  // ── Provider switch ───────────────────────────
+  // ── Provider switch ──────────────────────────
   var providerEl = document.getElementById('provider');
   var apiOptions = document.getElementById('api-options');
   var localOptions = document.getElementById('local-options');
@@ -54,7 +83,6 @@
     apiOptions.style.display = isApi ? '' : 'none';
   }
 
-  // Load saved config
   (function () {
     var cfg = loadConfig();
     if (cfg.provider) providerEl.value = cfg.provider;
@@ -80,13 +108,14 @@
     });
   });
 
-  // ── Transcription ─────────────────────────────
+  // ── Transcription ────────────────────────────
   async function waitForJob(jobId) {
     while (true) {
-      var response = await fetch('http://127.0.0.1:8765/jobs/' + jobId);
-      if (!response.ok) throw new Error('无法读取识别进度。');
-      var job = await response.json();
-      setStatus(job.message + '（' + job.progress + '%）', job.state === 'failed');
+      var resp = await fetch('http://127.0.0.1:8765/jobs/' + jobId);
+      if (!resp.ok) throw new Error('无法读取识别进度。');
+      var job = await resp.json();
+      setProgress(job.progress);
+      setStatus(job.message + ' (' + job.progress + '%)', job.state === 'failed');
       if (job.state === 'completed') return job.result;
       if (job.state === 'failed') throw new Error(job.message);
       await wait(700);
@@ -96,34 +125,36 @@
   function findWavePreset() {
     var adobe = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Adobe');
     var versions = fs.readdirSync(adobe)
-      .filter(function (name) { return /^Adobe Premiere Pro/.test(name); })
+      .filter(function (n) { return /^Adobe Premiere Pro/.test(n); })
       .sort().reverse();
     for (var i = 0; i < versions.length; i++) {
-      var preset = path.join(adobe, versions[i], 'Settings', 'EncoderPresets', 'Wave48mono16.epr');
-      if (fs.existsSync(preset)) return preset;
+      var p = path.join(adobe, versions[i], 'Settings', 'EncoderPresets', 'Wave48mono16.epr');
+      if (fs.existsSync(p)) return p;
     }
-    throw new Error('未找到 Premiere WAV 导出预设文件（Wave48mono16.epr），请安装 Premiere Media Encoder 预设。');
+    throw new Error('未找到 Premiere WAV 导出预设（Wave48mono16.epr）。');
   }
 
   async function refreshSequenceName() {
     var name = await evalHost('prSubtitleActiveSequenceName()');
     var display = name.indexOf('OK:') === 0 ? name.slice(3) : null;
     if (display) {
-      var current = '当前序列：' + display;
-      if (sequenceName.textContent !== current) {
-        sequenceName.textContent = current;
-        sequenceName.className = 'filename changed';
-        clearTimeout(sequenceName._flashTimer);
-        sequenceName._flashTimer = setTimeout(function () { sequenceName.className = 'filename'; }, 1500);
+      var txt = '当前序列：' + display;
+      if (sequenceName.textContent !== txt) {
+        sequenceName.textContent = txt;
+        sequenceName.className = 'changed';
+        clearTimeout(sequenceName._t);
+        sequenceName._t = setTimeout(function () { sequenceName.className = ''; }, 1500);
       }
     } else {
       sequenceName.textContent = name;
-      sequenceName.className = 'filename';
+      sequenceName.className = '';
     }
   }
 
   document.getElementById('transcribe').addEventListener('click', async function () {
-    result.value = ''; srtPath = ''; addCaptions.disabled = true; setProgress(0);
+    result.value = ''; srtPath = ''; addCaptions.disabled = true; exportSrt.disabled = true;
+    setProgress(0);
+    progressArea.style.display = '';
     var output;
     try {
       var cache = path.join(os.tmpdir(), 'PRSubtitleRecognizer');
@@ -132,12 +163,12 @@
       var preset = findWavePreset();
       setProgress(1);
       var rangeMode = document.getElementById('range').value;
-      var rangeLabel = { all: '全部', work: '入出点范围', selected: '选中片段' }[rangeMode];
-      setStatus('正在从 Premiere 导出（' + rangeLabel + '）混音音频…');
-      var exportResult = await evalHost('prSubtitleExportActiveSequence(' + JSON.stringify(output) + ',' + JSON.stringify(preset) + ',' + JSON.stringify(rangeMode) + ')');
-      if (exportResult.indexOf('OK:') !== 0) throw new Error(exportResult);
+      var labels = { all: '全部', work: '入出点', selected: '选中片段' };
+      setStatus('正在导出（' + labels[rangeMode] + '）…');
+      var exp = await evalHost('prSubtitleExportActiveSequence(' + JSON.stringify(output) + ',' + JSON.stringify(preset) + ',' + JSON.stringify(rangeMode) + ')');
+      if (exp.indexOf('OK:') !== 0) throw new Error(exp);
 
-      setStatus('音频导出完成，正在创建识别任务…');
+      setStatus('正在创建识别任务…');
       var body = {
         media_path: output,
         language: document.getElementById('language').value,
@@ -149,28 +180,36 @@
         body.api_key = apiKeyEl.value;
         body.api_model = apiModelEl.value;
       }
-      var response = await fetch('http://127.0.0.1:8765/transcribe-path', {
+      var resp = await fetch('http://127.0.0.1:8765/transcribe-path', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!response.ok) throw new Error((await response.json()).detail || '识别服务请求失败');
-      var job = await response.json();
+      if (!resp.ok) throw new Error((await resp.json()).detail || '服务请求失败');
+      var job = await resp.json();
       result.value = await waitForJob(job.job_id);
       srtPath = output.replace(/\.wav$/i, '.srt');
       fs.writeFileSync(srtPath, result.value, { encoding: 'utf8' });
-      addCaptions.disabled = !result.value;
-      setStatus('识别完成，正在将 SRT 导入 Premiere 项目面板…');
-      var importMessage = await evalHost('prSubtitleImportSrt(' + JSON.stringify(srtPath) + ')');
-      if (importMessage.indexOf('OK:') !== 0) throw new Error('SRT 已生成，但导入项目面板失败：' + importMessage);
-      setStatus('识别完成，SRT 已导入 Premiere 项目面板。');
-    } catch (error) { setStatus('任务失败：' + error.message, true); }
+      addCaptions.disabled = false;
+      exportSrt.disabled = false;
+      setStatus('识别完成，SRT 已导入项目面板。', false);
+    } catch (err) {
+      setStatus('任务失败：' + err.message, true);
+      progressArea.style.display = 'none';
+    }
   });
 
   addCaptions.addEventListener('click', async function () {
     if (!srtPath || !result.value) return;
-    setStatus('正在导入 SRT 并创建字幕轨道…');
-    var message = await evalHost('prSubtitleImportCaption(' + JSON.stringify(srtPath) + ')');
-    setStatus(message.indexOf('OK:') === 0 ? '字幕轨道创建成功。' : '字幕轨道创建失败：' + message, message.indexOf('OK:') !== 0);
+    setStatus('正在创建字幕轨道…');
+    var msg = await evalHost('prSubtitleImportCaption(' + JSON.stringify(srtPath) + ')');
+    setStatus(msg.indexOf('OK:') === 0 ? '字幕轨道创建成功。' : '创建失败：' + msg, msg.indexOf('OK:') !== 0);
+  });
+
+  exportSrt.addEventListener('click', function () {
+    if (!result.value) return;
+    var f = csInterface.getSystemPath('userData') + '/subtitles_' + Date.now() + '.srt';
+    fs.writeFileSync(f.replace(/\\/g, '/'), result.value, { encoding: 'utf8' });
+    setStatus('已导出到：' + f);
   });
 
   refreshSequenceName();
