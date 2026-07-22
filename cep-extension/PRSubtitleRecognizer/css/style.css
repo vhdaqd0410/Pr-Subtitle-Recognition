@@ -7,31 +7,21 @@
 body { margin: 0; }
 main { padding: 12px; }
 
-/* ── Header ──────────────────────── */
 .header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .header h1 { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
 #version { font-size: 11px; color: #888; background: #333; padding: 1px 6px; border-radius: 3px; }
 
-/* Server dot */
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: auto; flex-shrink: 0; }
 .dot.off { background: #666; }
 .dot.on  { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
 
-/* ── Cards ───────────────────────── */
-.card {
-  background: #2a2a2a;
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-}
+.card { background: #2a2a2a; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
 .card p { margin: 0; color: #bbb; font-size: 12px; }
 
-/* ── Rows ────────────────────────── */
 .row { display: flex; gap: 10px; margin-bottom: 8px; }
 .row:last-child { margin-bottom: 0; }
 .row label { flex: 1; color: #aaa; font-size: 11px; }
 
-/* ── Form elements ───────────────── */
 select, input[type="text"], input[type="password"] {
   width: 100%; margin-top: 3px; padding: 6px 8px;
   color: #e0e0e0; background: #1e1e1e;
@@ -41,7 +31,6 @@ select, input[type="text"], input[type="password"] {
 select:focus, input:focus { border-color: #5a9cf8; }
 #api-options label { display: block; margin-bottom: 6px; color: #aaa; font-size: 11px; }
 
-/* ── Buttons ─────────────────────── */
 button {
   display: block; width: 100%; padding: 10px;
   border: 0; border-radius: 6px; font-size: 13px;
@@ -57,21 +46,20 @@ button:disabled { opacity: .35; cursor: default; }
 .btn-row { display: flex; gap: 8px; margin-top: 8px; }
 .btn-row button { flex: 1; padding: 8px; font-size: 12px; }
 
-/* ── Progress ────────────────────── */
+.toggle { display: flex; align-items: center; gap: 6px; color: #aaa; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.toggle input { accent-color: #4c78b8; }
+
 #progress-area { margin: 8px 0; }
 .progress-bar { height: 6px; border-radius: 3px; background: #333; overflow: hidden; }
 #progress-fill { width: 0; height: 100%; background: #4c9cff; transition: width .3s ease; border-radius: 3px; }
 #progress-text { margin: 4px 0 0; font-size: 11px; color: #888; text-align: right; }
 
-/* ── Status ──────────────────────── */
 #status { min-height: 18px; margin: 6px 0; font-size: 12px; color: #8a8; }
 #status.error { color: #f66; }
 #status.success { color: #8c8; }
 
-/* ── Sequences flash ─────────────── */
 #sequence-name.changed { color: #ff0; }
 
-/* ── Result ──────────────────────── */
 textarea {
   display: block; width: 100%; height: 140px; margin-top: 6px;
   box-sizing: border-box; resize: vertical; padding: 8px;

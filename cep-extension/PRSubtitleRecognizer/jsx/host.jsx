@@ -1,5 +1,27 @@
 function prSubtitlePluginVersion() { return "1.0.0"; }
 
+function prSubtitleListSequences() {
+    try {
+        var seqs = [];
+        for (var i = 0; i < app.project.sequences.numSequences; i++) {
+            seqs.push(app.project.sequences[i].name);
+        }
+        return "OK:" + JSON.stringify(seqs);
+    } catch (e) { return "错误：" + e; }
+}
+
+function prSubtitleActivateSequence(name) {
+    try {
+        for (var i = 0; i < app.project.sequences.numSequences; i++) {
+            if (app.project.sequences[i].name === name) {
+                app.project.activeSequence = app.project.sequences[i];
+                return "OK:" + name;
+            }
+        }
+        return "未找到序列：" + name;
+    } catch (e) { return "错误：" + e; }
+}
+
 function prSubtitleActiveSequenceName() {
     var sequence = app.project.activeSequence;
     return sequence ? "OK:" + sequence.name : "未检测到活动序列，请在 Premiere 中打开目标序列。";

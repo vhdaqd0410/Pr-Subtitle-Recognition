@@ -40,10 +40,18 @@ class SequenceTranscriptionRequest(BaseModel):
     media_path: str
     language: str = "auto"
     model: ModelName = "small"
-    provider: str = "local"          # "local" | "openai"
-    api_base: str = ""                # OpenAI API base URL
-    api_key: str = ""                 # API key
-    api_model: str = "whisper-1"      # API model name
+    provider: str = "local"
+    api_base: str = ""
+    api_key: str = ""
+    api_model: str = "whisper-1"
+
+
+class TranslateRequest(BaseModel):
+    text: str
+    target: str
+    api_base: str = ""
+    api_key: str = ""
+    model: str = "gpt-4o-mini"
 
 
 def timestamp(seconds: float) -> str:
@@ -320,6 +328,37 @@ def get_transcription_job(job_id: str) -> dict[str, object]:
         if not job:
             raise HTTPException(status_code=404, detail="Transcription job was not found")
         return job.copy()
+
+
+@app.post("/translate")
+def translate_text(request: TranslateRequest) -> dict[str, str]:
+    """Translate SRT text via OpenAI-compatible API."""
+    base = (request.api_base or "https://api.openai.com/v1").rstrip("/")
+    url = f"{base}/chat/completions"
+    lang_names = {"zh": "Chinese", "en": "English", "ja": "Japanese", "ko": "Korean"}
+    target_name = lang_names.get(request.target, request.target)
+    prompt = (
+        f"Translate the following SRT subtitle content to {target_name}. "
+        "Preserve the SRT format (index numbers, timestamps) exactly. "
+        "Only translate the text content:\n\n"
+        f"{request.text}"
+    )
+    body = json.dumps({
+        "model": request.model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3,
+    }).encode()
+    req = urllib.request.Request(url, data=body, headers={
+        "Authorization": f"Bearer {request.api_key}",
+        "Content-Type": "application/json",
+    }, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode() if e.fp else str(e)
+        raise HTTPException(status_code=502, detail=f"翻译失败: {detail}")
+    return {"text": data["choices"][0]["message"]["content"].strip()}
 
 
 if __name__ == "__main__":
