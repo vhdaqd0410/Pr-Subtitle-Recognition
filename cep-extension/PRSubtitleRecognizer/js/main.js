@@ -411,17 +411,33 @@
         var seqs = JSON.parse(listResult.slice(3));
         if (seqs.length === 0) throw new Error('项目中没有序列。');
         setStatus('批量模式：共 ' + seqs.length + ' 个序列');
+
+        // Ensure server is running before starting
+        try { await fetch('http://127.0.0.1:8765/health'); } catch (_) {
+          throw new Error('服务未启动，请先双击 启动服务.bat。');
+        }
+
         var allSrt = '';
         for (var i = 0; i < seqs.length; i++) {
           setStatus('批量 (' + (i + 1) + '/' + seqs.length + ')：' + seqs[i]);
-          // Activate sequence
           var act = await evalHost('prSubtitleActivateSequence(' + JSON.stringify(seqs[i]) + ')');
           if (act.indexOf('OK:') !== 0) { setStatus('跳过：' + act, true); continue; }
-          await wait(500); // Let Premiere settle
-          try {
-            await transcribeOne(path.join(baseDir, 'audio', 'batch-' + i + '.wav'));
-            allSrt += result.value + '\n';
-          } catch (e) { allSrt += '; ' + seqs[i] + ' 失败: ' + e.message + '\n'; }
+          await wait(800); // Let Premiere settle
+
+          // Retry loop for server availability
+          var ok = false;
+          for (var retry = 0; retry < 3; retry++) {
+            try {
+              await transcribeOne(path.join(baseDir, 'audio', 'batch-' + i + '.wav'));
+              allSrt += result.value + '\n';
+              ok = true; break;
+            } catch (e) {
+              if (retry < 2 && e.message === 'Failed to fetch') {
+                setStatus('服务响应超时，重试 ' + (retry + 1) + '/2…');
+                await wait(2000);
+              } else { allSrt += '; ' + seqs[i] + ' 失败: ' + e.message + '\n'; break; }
+            }
+          }
         }
         result.value = allSrt;
         setStatus('批量完成：' + seqs.length + ' 个序列已处理。');
