@@ -156,6 +156,16 @@
     if (this.value && API_PRESETS[this.value]) {
       tlBaseEl.value = API_PRESETS[this.value];
     }
+    // Auto-select first matching model for this API
+    var sel = this.value;
+    for (var i = 0; i < tlModelPresetEl.options.length; i++) {
+      var opt = tlModelPresetEl.options[i];
+      if (sel && opt.getAttribute('data-api') === sel) {
+        tlModelPresetEl.value = opt.value;
+        tlModelEl.style.display = 'none';
+        return;
+      }
+    }
   });
 
   // Model preset → toggle custom input
