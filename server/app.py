@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from faster_whisper import WhisperModel, download_model
 
-app = FastAPI(title="PR Subtitle Recognizer", version="0.2.0")
+app = FastAPI(title="PR Subtitle Recognizer", version="0.2.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 

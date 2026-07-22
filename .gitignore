@@ -15,3 +15,12 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# PyInstaller
+*.spec
+build/
+dist/
+
+# Portable package (too large)
+portable/
+portable.zip
