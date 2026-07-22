@@ -131,8 +131,10 @@
       output = path.join(cache, 'sequence-' + Date.now() + '.wav');
       var preset = findWavePreset();
       setProgress(1);
-      setStatus('正在从 Premiere 导出序列混音音频…');
-      var exportResult = await evalHost('prSubtitleExportActiveSequence(' + JSON.stringify(output) + ',' + JSON.stringify(preset) + ')');
+      var rangeMode = document.getElementById('range').value;
+      var rangeLabel = { all: '全部', work: '入出点范围', selected: '选中片段' }[rangeMode];
+      setStatus('正在从 Premiere 导出（' + rangeLabel + '）混音音频…');
+      var exportResult = await evalHost('prSubtitleExportActiveSequence(' + JSON.stringify(output) + ',' + JSON.stringify(preset) + ',' + JSON.stringify(rangeMode) + ')');
       if (exportResult.indexOf('OK:') !== 0) throw new Error(exportResult);
 
       setStatus('音频导出完成，正在创建识别任务…');
