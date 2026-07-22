@@ -113,18 +113,33 @@
     if (preset) tlBaseEl.value = API_PRESETS[preset];
     if (cfg.tlKey) tlKeyEl.value = cfg.tlKey;
 
-    // Model: check if it matches a preset
+    // Model: check if it matches a preset AND is compatible with the API
     var modelMatch = false;
     for (var i = 0; i < tlModelPresetEl.options.length; i++) {
-      if (tlModelPresetEl.options[i].value === cfg.tlModel) { modelMatch = true; break; }
+      var opt = tlModelPresetEl.options[i];
+      if (opt.value === cfg.tlModel && (!preset || opt.getAttribute('data-api') === preset)) {
+        modelMatch = true; break;
+      }
     }
     if (modelMatch) {
       tlModelPresetEl.value = cfg.tlModel;
       tlModelEl.style.display = 'none';
     } else if (cfg.tlModel) {
-      tlModelPresetEl.value = '';
-      tlModelEl.value = cfg.tlModel;
-      tlModelEl.style.display = '';
+      // Saved model doesn't match current API → auto-pick first for this API
+      var autoPicked = false;
+      for (var j = 0; j < tlModelPresetEl.options.length; j++) {
+        var o = tlModelPresetEl.options[j];
+        if (preset && o.getAttribute('data-api') === preset) {
+          tlModelPresetEl.value = o.value;
+          tlModelEl.style.display = 'none';
+          autoPicked = true; break;
+        }
+      }
+      if (!autoPicked) {
+        tlModelPresetEl.value = '';
+        tlModelEl.value = cfg.tlModel;
+        tlModelEl.style.display = '';
+      }
     }
 
     // If fully configured, show ready mode
@@ -136,7 +151,7 @@
   })();
 
   function getTranslateModel() {
-    return tlModelPresetEl.value || tlModelEl.value || 'gpt-4o-mini';
+    return tlModelPresetEl.value || tlModelEl.value;
   }
 
   function showTranslateConfig() {
