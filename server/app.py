@@ -3,21 +3,29 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
+import traceback
 import uuid
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Callable, Literal
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from faster_whisper import WhisperModel, download_model
 
 app = FastAPI(title="PR Subtitle Recognizer", version="0.2.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 ModelName = Literal["tiny", "base", "small", "medium", "large-v3"]
 models: dict[tuple[str, str], WhisperModel] = {}
@@ -69,8 +77,7 @@ def resolve_model_path(name: ModelName) -> str:
         return str(model_path)
 
     # 2. repo-bundled model (e.g. models/faster-whisper-small/)
-    import sys as _sys
-    _app_dir = Path(_sys.executable).parent if getattr(_sys, 'frozen', False) else Path(__file__).resolve().parent.parent
+    _app_dir = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent.parent
     bundled = _app_dir / "models" / f"faster-whisper-{name}"
     if (bundled / "config.json").is_file():
         return str(bundled)
