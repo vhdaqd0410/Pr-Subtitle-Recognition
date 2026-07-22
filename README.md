@@ -36,17 +36,20 @@ cd server
 python -m pip install -r requirements.txt
 ```
 
-### 3. 准备语音识别模型
+### 3. 拉取语音识别模型
 
-模型文件未包含在仓库中（太大），有两种方式获取：
+模型文件通过 Git LFS 存储在仓库中。克隆后需确保 LFS 文件已下载：
 
-**方式 A — 从原电脑拷贝（推荐离线环境）：**
+```powershell
+git lfs install
+git lfs pull
+```
 
-将原电脑上 `models/faster-whisper-small/` 整个文件夹复制到新电脑的同路径下。
+> 如果克隆时已安装 Git LFS，文件通常会自动拉取。若 `models/faster-whisper-small/model.bin` 为几百字节（指针文件），说明 LFS 未拉取，执行上面的命令即可。
 
-**方式 B — 让 faster-whisper 自动下载（需联网）：**
+**离线/网络受限环境：**
 
-首次转录时会自动从 Hugging Face 下载。如果网络受限，使用镜像启动脚本：
+如果 Hugging Face 直连不稳定，启动服务时使用镜像脚本：
 
 ```powershell
 .\start-with-hf-mirror.ps1
