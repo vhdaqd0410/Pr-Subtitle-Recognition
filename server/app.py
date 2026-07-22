@@ -128,7 +128,7 @@ def transcribe_file(
             progress_callback(6, "正在分析音频，请稍候…")
         segments, info = active_model.transcribe(
             str(media_path), language=None if language == "auto" else language,
-            vad_filter=True, beam_size=5,
+            beam_size=5, condition_on_previous_text=False,
         )
         duration = getattr(info, "duration", None)
         return to_srt(segments, duration, progress_callback)
