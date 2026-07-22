@@ -1,4 +1,4 @@
-function prSubtitlePluginVersion() { return "1.0.0"; }
+function prSubtitlePluginVersion() { return "2.0.0"; }
 
 function prSubtitleListSequences() {
     try {
