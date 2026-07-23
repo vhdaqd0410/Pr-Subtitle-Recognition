@@ -50,11 +50,12 @@
   function updateServerButtons(running) {
     if (running) {
       serverDot.className = 'dot on'; serverDot.title = '服务运行中';
-      startBtn.hidden = true; stopBtn.hidden = false; dashBtn.hidden = false;
+      startBtn.style.display = 'none';
+      stopBtn.style.display = ''; dashBtn.style.display = '';
     } else {
       serverDot.className = 'dot off'; serverDot.title = '服务未启动';
-      if (cp) { startBtn.hidden = false; }
-      stopBtn.hidden = true; dashBtn.hidden = true;
+      startBtn.style.display = '';
+      stopBtn.style.display = 'none'; dashBtn.style.display = 'none';
     }
   }
 
@@ -112,17 +113,6 @@
     e.preventDefault();
     cp && cp.exec('start http://127.0.0.1:8765/dashboard');
   });
-
-  function checkServer() {
-    fetch('http://127.0.0.1:8765/health')
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        serverDot.className = 'dot on';
-        serverDot.title = '服务正常 (' + d.device.toUpperCase() + ')';
-      })
-      .catch(function () { serverDot.className = 'dot off'; serverDot.title = '服务未启动'; });
-  }
-  checkServer(); setInterval(checkServer, 10000);
 
   // ── Config persistence ──────────────────────
   function loadJSON(f) { try { fs.mkdirSync(path.dirname(f), { recursive: true }); if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) {} return null; }
