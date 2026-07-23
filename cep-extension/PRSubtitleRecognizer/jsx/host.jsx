@@ -18,7 +18,7 @@ if (typeof JSON === 'undefined') {
     };
 }
 
-function prSubtitlePluginVersion() { return "3.0.0"; }
+function prSubtitlePluginVersion() { return "3.1.0"; }
 
 function prSubtitleListSequences() {
     try {
