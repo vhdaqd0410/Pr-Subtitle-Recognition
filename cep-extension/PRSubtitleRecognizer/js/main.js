@@ -69,14 +69,41 @@
 
   startBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    setStatus('请找到 portable 文件夹，双击「启动服务(静默).vbs」即可后台启动服务。', true);
-    var userDir = process.env.USERPROFILE || '';
-    if (cp) {
-      ['Desktop', 'Downloads', 'Documents'].forEach(function (d) {
-        var dir = path.join(userDir, d);
-        if (fs.existsSync(dir)) cp.exec('explorer "' + dir + '"');
-      });
+    var portableDir = '';
+    var pathFile = path.join(process.env.APPDATA || '', 'PRSubtitleRecognizer', 'portable-path.txt');
+    try {
+      if (fs.existsSync(pathFile)) {
+        portableDir = fs.readFileSync(pathFile, 'utf8').trim();
+        if (!fs.existsSync(path.join(portableDir, 'pr-subtitle-server.exe'))) portableDir = '';
+      }
+    } catch (_) {}
+    if (!portableDir) {
+      var userDir = process.env.USERPROFILE || '';
+      var dirs = [
+        path.join(userDir, 'Documents', 'pr字幕识别', 'portable'),
+        path.join(userDir, 'Documents', 'Pr-Subtitle-Recognition', 'portable'),
+        path.join(userDir, 'Desktop', 'portable'),
+        path.join(userDir, 'Downloads', 'portable'),
+      ];
+      for (var i = 0; i < dirs.length; i++) {
+        if (fs.existsSync(path.join(dirs[i], 'pr-subtitle-server.exe'))) { portableDir = dirs[i]; break; }
+      }
     }
+    if (portableDir) {
+      var vbs = path.join(portableDir, '启动服务(静默).vbs');
+      if (cp && fs.existsSync(vbs)) {
+        cp.exec('wscript //B "' + vbs + '"', function () {});
+        setStatus('正在启动服务…');
+        var nn = 0, tt = setInterval(function () {
+          nn++;
+          fetch('http://127.0.0.1:8765/health').then(function () { clearInterval(tt); checkServer(); setStatus('服务已启动。'); })
+            .catch(function () { if (nn >= 15) { clearInterval(tt); updateServerButtons(false); setStatus('启动超时，请手动运行。', true); } });
+        }, 1000);
+        return;
+      }
+    }
+    setStatus('请双击 portable 文件夹中的「启动服务(静默).vbs」。', true);
+    if (cp) cp.exec('explorer shell:Downloads');
   });
 
   stopBtn.addEventListener('click', function (e) {
@@ -456,6 +483,7 @@
 
   batchModeEl.addEventListener('change', function () {
     if (this.checked) {
+      setStatus('正在读取序列列表…');
       loadBatchList();
     } else {
       batchListEl.style.display = 'none';
@@ -464,7 +492,12 @@
 
   function loadBatchList() {
     evalHost('prSubtitleListSequences()').then(function (r) {
-      if (r.indexOf('OK:') !== 0) { batchSeqDiv.innerHTML = '<span style="color:#f66">读取失败</span>'; return; }
+      if (!r || r.indexOf('OK:') !== 0) {
+        batchSeqDiv.innerHTML = '<span style="color:#f66">读取失败: ' + (r || '无响应') + '</span>';
+        batchListEl.style.display = '';
+        setStatus('无法读取序列列表，请确认 Premiere 中已打开项目。', true);
+        return;
+      }
       var seqs = JSON.parse(r.slice(3));
       var html = '';
       seqs.forEach(function (s) {
@@ -472,6 +505,7 @@
       });
       batchSeqDiv.innerHTML = html;
       batchListEl.style.display = '';
+      setStatus('已加载 ' + seqs.length + ' 个序列。');
       updateBatchCount();
     });
   }

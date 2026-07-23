@@ -39,6 +39,9 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+:: Save portable directory path for the panel
+echo %~dp0> "%APPDATA%\PRSubtitleRecognizer\portable-path.txt"
 echo.
 
 echo [5/5] Install complete!
