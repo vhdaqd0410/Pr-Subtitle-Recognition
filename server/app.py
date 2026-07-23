@@ -34,6 +34,18 @@ models: dict[tuple[str, str], WhisperModel] = {}
 last_device = "not checked"
 jobs: dict[str, dict[str, object]] = {}
 jobs_lock = threading.Lock()
+start_time = time.time()
+
+# Log buffer
+log_lines: list[str] = []
+log_lock = threading.Lock()
+
+def add_log(msg: str) -> None:
+    ts = time.strftime("%H:%M:%S")
+    with log_lock:
+        log_lines.append(f"[{ts}] {msg}")
+        if len(log_lines) > 200:
+            log_lines[:] = log_lines[-150:]
 
 
 class SequenceTranscriptionRequest(BaseModel):
@@ -257,6 +269,8 @@ def update_job(job_id: str, progress: int, message: str, state: str = "running")
 
 
 def run_sequence_job(job_id: str, request: SequenceTranscriptionRequest) -> None:
+    file_name = Path(request.media_path).name
+    add_log(f"开始转写: {file_name} [{request.provider}]")
     try:
         if request.provider == "openai" and request.api_key:
             result = transcribe_openai(
@@ -275,7 +289,9 @@ def run_sequence_job(job_id: str, request: SequenceTranscriptionRequest) -> None
                 state="completed", progress=100, message="识别完成，正在生成字幕。",
                 result=result, updated_at=time.time(),
             )
+        add_log(f"转写完成: {file_name}")
     except Exception as error:
+        add_log(f"转写失败: {file_name} - {error}")
         update_job(job_id, 0, f"识别失败：{error}", "failed")
 
 
@@ -366,6 +382,89 @@ def translate_text(request: TranslateRequest) -> dict[str, str]:
     return {"text": data["choices"][0]["message"]["content"].strip()}
 
 
+@app.get("/api/stats")
+def api_stats() -> dict[str, object]:
+    with jobs_lock:
+        running = sum(1 for j in jobs.values() if j.get("state") in ("queued", "running"))
+        completed = sum(1 for j in jobs.values() if j.get("state") == "completed")
+        failed = sum(1 for j in jobs.values() if j.get("state") == "failed")
+    uptime = int(time.time() - start_time)
+    h, m = divmod(uptime, 3600)
+    mm, ss = divmod(m, 60)
+    with log_lock:
+        logs = list(log_lines[-100:])
+    return {
+        "status": "running",
+        "device": last_device,
+        "uptime": f"{h}h {mm}m {ss}s",
+        "jobs": {"running": running, "completed": completed, "failed": failed},
+        "logs": logs,
+    }
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard() -> str:
+    return DASHBOARD_HTML
+
+
+DASHBOARD_HTML = r"""<!doctype html>
+<html lang=zh>
+<head><meta charset=utf-8><title>PR 字幕识别 - 后台</title>
+<style>
+:root{color:#e0e0e0;background:#1e1e1e;font:14px/1.5 'Microsoft YaHei',sans-serif}
+body{margin:0;padding:24px;max-width:720px;margin:0 auto}
+h1{font-size:20px;margin:0 0 20px;color:#fff}
+.card{background:#2a2a2a;border-radius:8px;padding:16px;margin-bottom:16px}
+.card h2{font-size:14px;margin:0 0 12px;color:#aaa}
+.stats{display:flex;gap:12px;flex-wrap:wrap}
+.stat{flex:1;min-width:80px;text-align:center;padding:10px;background:#1e1e1e;border-radius:6px}
+.stat .val{font-size:22px;font-weight:700;color:#fff}
+.stat .lbl{font-size:11px;color:#888;margin-top:4px}
+.green{color:#4caf50}.red{color:#f44336}.yellow{color:#ff9800}
+#logs{background:#111;border-radius:6px;padding:12px;max-height:400px;overflow-y:auto;font:12px/1.6 Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+.refresh{float:right;font-size:12px;color:#888;background:#333;border:0;padding:4px 12px;border-radius:4px;cursor:pointer}
+</style></head>
+<body>
+<h1>PR 字幕识别 后台管理 <button class=refresh onclick=load()>刷新</button></h1>
+<div class=card><h2>服务状态</h2>
+<div class=stats>
+<div class=stat><div class="val green" id=status>●</div><div class=lbl>状态</div></div>
+<div class=stat><div class=val id=device>-</div><div class=lbl>推理设备</div></div>
+<div class=stat><div class=val id=uptime>-</div><div class=lbl>运行时间</div></div>
+<div class=stat><div class=val id=running>-</div><div class=lbl>进行中</div></div>
+<div class=stat><div class=val id=completed>-</div><div class=lbl>已完成</div></div>
+<div class=stat><div class=val id=failed>-</div><div class=lbl>失败</div></div></div></div>
+<div class=card><h2>运行日志</h2>
+<div id=logs>加载中…</div></div>
+<script>
+async function load(){try{let r=await fetch('/api/stats'),d=await r.json();
+document.getElementById('status').textContent=d.status==='running'?'● 运行中':'○ 已停止';
+document.getElementById('device').textContent=d.device?.toUpperCase()||'-';
+document.getElementById('uptime').textContent=d.uptime||'-';
+document.getElementById('running').textContent=d.jobs?.running||0;
+document.getElementById('completed').textContent=d.jobs?.completed||0;
+document.getElementById('failed').textContent=d.jobs?.failed||0;
+document.getElementById('logs').textContent=(d.logs||[]).join('\n')||'(空)';
+}catch(e){document.getElementById('logs').textContent='无法连接服务';}}
+load();setInterval(load,3000);
+</script></body></html>"""
+
+from fastapi.responses import HTMLResponse
+
+
+@app.post("/shutdown")
+def shutdown() -> dict[str, str]:
+    add_log("收到关闭请求")
+    threading.Thread(target=_shutdown, daemon=True).start()
+    return {"status": "shutting_down"}
+
+
+def _shutdown() -> None:
+    time.sleep(0.5)
+    os._exit(0)
+
+
 if __name__ == "__main__":
     import uvicorn
+    add_log("服务启动")
     uvicorn.run(app, host="127.0.0.1", port=8765)

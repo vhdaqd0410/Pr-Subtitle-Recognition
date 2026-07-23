@@ -39,6 +39,80 @@
     serverDot.title = 'Premiere 已连接';
   }).catch(function () {});
 
+  // ── Server start/stop ────────────────────────
+  var cp;
+  try { cp = require('child_process'); } catch (_) { cp = null; }
+  var startBtn = document.getElementById('server-start');
+  var stopBtn = document.getElementById('server-stop');
+  var dashBtn = document.getElementById('server-dashboard');
+  var serverProc = null;
+
+  function updateServerButtons(running) {
+    if (running) {
+      serverDot.className = 'dot on'; serverDot.title = '服务运行中';
+      startBtn.hidden = true; stopBtn.hidden = false; dashBtn.hidden = false;
+    } else {
+      serverDot.className = 'dot off'; serverDot.title = '服务未启动';
+      if (cp) { startBtn.hidden = false; }
+      stopBtn.hidden = true; dashBtn.hidden = true;
+    }
+  }
+
+  function checkServer() {
+    fetch('http://127.0.0.1:8765/health')
+      .then(function (r) { return r.json(); })
+      .then(function () { updateServerButtons(true); })
+      .catch(function () { updateServerButtons(false); });
+  }
+  checkServer(); setInterval(checkServer, 8000);
+
+  startBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (!cp) { setStatus('当前环境不支持启动服务，请手动运行 start.bat。', true); return; }
+    if (serverProc) { setStatus('服务已在启动中…'); return; }
+    // Find exe relative to the CEP extension install path
+    var exeDir = process.env.PORTABLE_DIR || '';
+    if (!exeDir) {
+      // Default: look for portable folder at common locations
+      var userDir = process.env.USERPROFILE || '';
+      var candidates = [
+        path.join(fs.realpathSync ? fs.realpathSync('.') : '', '..', '..', '..', 'portable', 'pr-subtitle-server.exe'),
+        path.join(userDir, 'Documents', 'pr字幕识别', 'portable', 'pr-subtitle-server.exe'),
+        'C:\\pr-subtitle\\portable\\pr-subtitle-server.exe',
+      ];
+      for (var i = 0; i < candidates.length; i++) {
+        if (fs.existsSync(candidates[i])) { exeDir = path.dirname(candidates[i]); break; }
+      }
+    }
+    if (!exeDir) { setStatus('未找到 pr-subtitle-server.exe，请手动启动。', true); return; }
+    setStatus('正在启动服务…');
+    serverProc = cp.spawn(path.join(exeDir, 'pr-subtitle-server.exe'), [], {
+      cwd: exeDir,
+      env: Object.assign({}, process.env, { PR_SUBTITLE_DEVICE: 'cpu' }),
+      windowsHide: true,
+    });
+    serverProc.on('error', function () { serverProc = null; });
+    serverProc.on('exit', function () { serverProc = null; updateServerButtons(false); });
+    setTimeout(function () { checkServer(); }, 2000);
+  });
+
+  stopBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    setStatus('正在停止服务…');
+    fetch('http://127.0.0.1:8765/shutdown', { method: 'POST' }).catch(function () {});
+    if (serverProc) { serverProc.kill(); serverProc = null; }
+    // Fallback taskkill
+    setTimeout(function () {
+      cp && cp.exec('taskkill /F /IM pr-subtitle-server.exe', function () {});
+      checkServer();
+    }, 1500);
+  });
+
+  dashBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    cp && cp.exec('start http://127.0.0.1:8765/dashboard');
+  });
+
   function checkServer() {
     fetch('http://127.0.0.1:8765/health')
       .then(function (r) { return r.json(); })
