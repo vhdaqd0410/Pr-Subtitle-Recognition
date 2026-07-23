@@ -554,6 +554,29 @@
     } catch (e) { setStatus('翻译失败：' + e.message, true); }
   });
 
+  // ── Translate SRT file ─────────────────────────
+  var tlFileInput = document.getElementById('translate-file');
+  var tlFileName = document.getElementById('translate-file-name');
+  document.getElementById('translate-file-btn').addEventListener('click', function () {
+    tlFileInput.click();
+  });
+  tlFileInput.addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    tlFileName.textContent = file.name;
+    var reader = new (require('fs')).ReadStream ? null : null;
+    // Use Node fs since we're in CEP
+    var fpath = file.path; // CEP gives us the full path
+    if (fpath && fs.existsSync(fpath)) {
+      result.value = fs.readFileSync(fpath, 'utf8');
+      document.getElementById('translate-card').style.display = '';
+      srtPath = fpath;
+      setStatus('已加载：' + file.name);
+      addCaptions.disabled = false;
+      exportSrt.disabled = false;
+    }
+  });
+
   // ── Start ─────────────────────────────────────
   refreshSequenceName();
   setInterval(refreshSequenceName, 2000);
