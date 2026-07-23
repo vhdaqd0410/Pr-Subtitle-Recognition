@@ -48,11 +48,42 @@ def add_log(msg: str) -> None:
             log_lines[:] = log_lines[-150:]
 
 
+def vocal_isolate(media_path: Path, progress_callback: Callable[[int, str], None] | None = None) -> Path:
+    """Extract center channel (vocals) from stereo audio."""
+    import av
+    import numpy as np
+    if progress_callback:
+        progress_callback(2, "正在分离人声（中心声道提取）…")
+    output_path = media_path.with_suffix(".vocals.wav")
+    ic = av.open(str(media_path))
+    st = ic.streams.audio[0]
+    oc = av.open(str(output_path), "w")
+    os_ = oc.add_stream("pcm_s16le", rate=16000)
+    os_.channels = 1
+    for pkt in ic.demux(st):
+        for frm in pkt.decode():
+            arr = frm.to_ndarray()
+            if arr.ndim >= 2 and arr.shape[0] >= 2:
+                arr = ((arr[0].astype(np.float32) + arr[1].astype(np.float32)) * 0.5).astype(np.int16)
+            elif arr.ndim >= 2:
+                arr = arr[0]
+            nf = av.AudioFrame.from_ndarray(arr.reshape(1, -1), format="s16", layout="mono")
+            nf.sample_rate = 16000
+            for p in os_.encode(nf):
+                oc.mux(p)
+    for p in os_.encode(None):
+        oc.mux(p)
+    oc.close()
+    ic.close()
+    return output_path
+
+
 class SequenceTranscriptionRequest(BaseModel):
     media_path: str
     language: str = "auto"
     model: ModelName = "small"
     provider: str = "local"
+    vocal_isolate: bool = False
     api_base: str = ""
     api_key: str = ""
     api_model: str = "whisper-1"
@@ -269,19 +300,23 @@ def update_job(job_id: str, progress: int, message: str, state: str = "running")
 
 
 def run_sequence_job(job_id: str, request: SequenceTranscriptionRequest) -> None:
-    file_name = Path(request.media_path).name
+    media_path = Path(request.media_path)
+    file_name = media_path.name
     add_log(f"开始转写: {file_name} [{request.provider}]")
     try:
+        if request.vocal_isolate:
+            media_path = vocal_isolate(media_path, lambda p, m: update_job(job_id, p, m))
+            file_name = media_path.name
         if request.provider == "openai" and request.api_key:
             result = transcribe_openai(
-                Path(request.media_path), request.language,
+                media_path, request.language,
                 request.api_base or "https://api.openai.com/v1",
                 request.api_key, request.api_model,
                 lambda progress, message: update_job(job_id, progress, message),
             )
         else:
             result = transcribe_file(
-                Path(request.media_path), request.language, request.model,
+                media_path, request.language, request.model,
                 lambda progress, message: update_job(job_id, progress, message),
             )
         with jobs_lock:

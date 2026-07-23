@@ -465,6 +465,7 @@
       language: document.getElementById('language').value,
       model: document.getElementById('model').value,
       provider: providerEl.value,
+      vocal_isolate: document.getElementById('vocal-isolate').checked,
     };
     if (providerEl.value === 'openai') {
       body.api_base = apiBaseEl.value;
