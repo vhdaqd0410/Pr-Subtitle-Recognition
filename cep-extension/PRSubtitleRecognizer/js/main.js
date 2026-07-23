@@ -1,8 +1,22 @@
 /* global require, CSInterface */
 (function () {
-  var fs = require('fs');
-  var os = require('os');
-  var path = require('path');
+  // Safety check: Node.js must be available (CEP --enable-nodejs)
+  var fs, os, path, cp;
+  try {
+    fs = require('fs');
+    os = require('os');
+    path = require('path');
+    try { cp = require('child_process'); } catch (_) { cp = null; }
+  } catch (e) {
+    document.body.innerHTML = '<div style="color:#f66;padding:20px;font:14px Microsoft YaHei">' +
+      '<h3>面板加载失败</h3>' +
+      '<p>Node.js 环境不可用。请确认：</p>' +
+      '<p>1. 已运行「启用CEP调试模式.reg」</p>' +
+      '<p>2. 已重启 Premiere Pro</p>' +
+      '<p>3. Premiere 版本支持 CEP 扩展</p>' +
+      '<p style="color:#888;font-size:12px">错误: ' + e.message + '</p></div>';
+    return;
+  }
   var status = document.getElementById('status');
   var result = document.getElementById('result');
   var addCaptions = document.getElementById('add-captions');
