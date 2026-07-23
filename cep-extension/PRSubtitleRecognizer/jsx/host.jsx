@@ -28,26 +28,19 @@ function prSubtitleActiveSequenceName() {
 }
 
 function prSubtitleExportActiveSequence(outputPath, presetPath, rangeMode) {
-    /*
-     * rangeMode: "all" | "work" | "selected"
-     * - "all":      整个序列
-     * - "work":     入点-出点 (Work Area)
-     * - "selected": 选中的片段范围
-     */
     var sequence = app.project.activeSequence;
     if (!sequence) return "未检测到活动序列，请在 Premiere 中打开目标序列。";
 
     var preset = new File(presetPath);
     if (!preset.exists) return "未找到 WAV 导出预设：" + presetPath;
 
-    var exportType = 0;  // 0=Entire, 1=Work Area
+    var exportType = 0;
     var savedIn, savedOut;
 
     try {
         if (rangeMode === "work") {
             exportType = 1;
         } else if (rangeMode === "selected") {
-            // Find the time range of all selected clips
             var minSec = Infinity, maxSec = -Infinity, found = false;
             var tracks = sequence.videoTracks;
             for (var t = 0; t < tracks.numTracks; t++) {
@@ -62,12 +55,10 @@ function prSubtitleExportActiveSequence(outputPath, presetPath, rangeMode) {
                             if (s < minSec) minSec = s;
                             if (e > maxSec) maxSec = e;
                         }
-                    } catch (_) { /* skip clips that throw on .selected */ }
+                    } catch (_) {}
                 }
             }
             if (!found) return "未选中任何剪辑片段，请在时间轴上选中后再试。";
-
-            // Save current in/out, set to selection range
             savedIn = sequence.getInPoint().seconds;
             savedOut = sequence.getOutPoint().seconds;
             sequence.setInPoint(minSec);
@@ -82,7 +73,6 @@ function prSubtitleExportActiveSequence(outputPath, presetPath, rangeMode) {
         return "OK:" + output.fsName;
     } catch (error) { return "导出错误：" + error; }
     finally {
-        // Restore original in/out if we changed them
         if (savedIn !== undefined) {
             try { sequence.setInPoint(savedIn); } catch (_) {}
             try { sequence.setOutPoint(savedOut); } catch (_) {}
@@ -113,6 +103,26 @@ function prSubtitleImportSrt(srtPath) {
         if (!captionItem) return "SRT 已导入，但未找到对应的项目项。";
         return "OK: SRT 已导入项目面板";
     } catch (error) { return "脚本错误：" + error; }
+}
+
+function prSubtitleListProjectSrts() {
+    var result = [];
+    function walk(item) {
+        if (!item) return;
+        try {
+            var mp = item.getMediaPath ? item.getMediaPath() : '';
+            if (mp && /\.srt$/i.test(mp)) {
+                result.push({ name: item.name, path: mp });
+            }
+        } catch (_) {}
+        if (item.children) {
+            for (var i = 0; i < item.children.numItems; i++) {
+                walk(item.children[i]);
+            }
+        }
+    }
+    try { walk(app.project.rootItem); } catch (e) {}
+    return "OK:" + JSON.stringify(result);
 }
 
 function prSubtitleImportCaption(srtPath) {

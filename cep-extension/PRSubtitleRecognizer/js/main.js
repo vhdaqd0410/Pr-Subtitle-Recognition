@@ -557,6 +557,8 @@
   // ── Translate SRT file ─────────────────────────
   var tlFileInput = document.getElementById('translate-file');
   var tlFileName = document.getElementById('translate-file-name');
+  var tlProjectSrt = document.getElementById('translate-project-srt');
+
   document.getElementById('translate-file-btn').addEventListener('click', function () {
     tlFileInput.click();
   });
@@ -564,14 +566,45 @@
     var file = this.files[0];
     if (!file) return;
     tlFileName.textContent = file.name;
-    var reader = new (require('fs')).ReadStream ? null : null;
-    // Use Node fs since we're in CEP
-    var fpath = file.path; // CEP gives us the full path
+    var fpath = file.path;
     if (fpath && fs.existsSync(fpath)) {
       result.value = fs.readFileSync(fpath, 'utf8');
       document.getElementById('translate-card').style.display = '';
       srtPath = fpath;
       setStatus('已加载：' + file.name);
+      addCaptions.disabled = false;
+      exportSrt.disabled = false;
+    }
+  });
+
+  // Load project SRTs dropdown
+  function loadProjectSrts() {
+    evalHost('prSubtitleListProjectSrts()').then(function (r) {
+      if (r.indexOf('OK:') !== 0) return;
+      var srts = JSON.parse(r.slice(3));
+      tlProjectSrt.innerHTML = '<option value="">项目中的 SRT…</option>';
+      srts.forEach(function (s) {
+        var o = document.createElement('option');
+        o.value = s.path;
+        o.textContent = s.name;
+        tlProjectSrt.appendChild(o);
+      });
+    });
+  }
+  // Reload when translate card becomes visible
+  var observer = new MutationObserver(function () {
+    if (document.getElementById('translate-card').style.display !== 'none') {
+      loadProjectSrts();
+    }
+  });
+  observer.observe(document.getElementById('translate-card'), { attributes: true, attributeFilter: ['style'] });
+
+  tlProjectSrt.addEventListener('change', function () {
+    if (!this.value) return;
+    if (fs.existsSync(this.value)) {
+      result.value = fs.readFileSync(this.value, 'utf8');
+      srtPath = this.value;
+      setStatus('已加载：' + this.options[this.selectedIndex].textContent);
       addCaptions.disabled = false;
       exportSrt.disabled = false;
     }
