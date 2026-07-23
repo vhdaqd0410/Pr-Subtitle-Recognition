@@ -89,18 +89,20 @@
         if (fs.existsSync(path.join(dirs[i], 'pr-subtitle-server.exe'))) { portableDir = dirs[i]; break; }
       }
     }
-    if (portableDir) {
-      var vbs = path.join(portableDir, '启动服务(静默).vbs');
-      if (cp && fs.existsSync(vbs)) {
-        cp.exec('wscript //B "' + vbs + '"', function () {});
-        setStatus('正在启动服务…');
-        var nn = 0, tt = setInterval(function () {
-          nn++;
-          fetch('http://127.0.0.1:8765/health').then(function () { clearInterval(tt); checkServer(); setStatus('服务已启动。'); })
-            .catch(function () { if (nn >= 15) { clearInterval(tt); updateServerButtons(false); setStatus('启动超时，请手动运行。', true); } });
-        }, 1000);
-        return;
-      }
+    if (portableDir && cp) {
+      var exe = path.join(portableDir, 'pr-subtitle-server.exe');
+      var env = Object.assign({}, process.env, { PR_SUBTITLE_DEVICE: 'cpu' });
+      serverProc = cp.spawn(exe, [], { cwd: portableDir, env: env, windowsHide: true, stdio: 'ignore', detached: true });
+      serverProc.unref();
+      serverProc.on('error', function () { serverProc = null; });
+      serverProc.on('exit', function () { serverProc = null; updateServerButtons(false); });
+      setStatus('正在启动服务…');
+      var nn = 0, tt = setInterval(function () {
+        nn++;
+        fetch('http://127.0.0.1:8765/health').then(function () { clearInterval(tt); checkServer(); setStatus('服务已启动。'); })
+          .catch(function () { if (nn >= 15) { clearInterval(tt); updateServerButtons(false); setStatus('启动超时，请双击 pr-subtitle-server.exe。', true); } });
+      }, 1000);
+      return;
     }
     setStatus('请双击 portable 文件夹中的「启动服务(静默).vbs」。', true);
     if (cp) cp.exec('explorer shell:Downloads');
