@@ -16,7 +16,7 @@ from typing import Callable, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from faster_whisper import WhisperModel, download_model
 
@@ -448,8 +448,6 @@ document.getElementById('logs').textContent=(d.logs||[]).join('\n')||'(空)';
 }catch(e){document.getElementById('logs').textContent='无法连接服务';}}
 load();setInterval(load,3000);
 </script></body></html>"""
-
-from fastapi.responses import HTMLResponse
 
 
 @app.post("/shutdown")
