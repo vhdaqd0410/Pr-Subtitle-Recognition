@@ -184,6 +184,7 @@
     OpenAI:      'https://api.openai.com/v1',
     Groq:        'https://api.groq.com/openai/v1',
     SiliconFlow: 'https://api.siliconflow.cn/v1',
+    Volcengine:  'https://ark.cn-beijing.volces.com/api/v3',
   };
 
   // Load saved config
