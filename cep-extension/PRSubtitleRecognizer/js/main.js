@@ -69,28 +69,13 @@
 
   startBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    // Try wscript first, fallback to opening directory
+    setStatus('请找到 portable 文件夹，双击「启动服务(静默).vbs」即可后台启动服务。', true);
     var userDir = process.env.USERPROFILE || '';
-    var portableDir = path.join(userDir, 'Documents', 'pr字幕识别', 'portable');
-    if (!fs.existsSync(path.join(portableDir, 'pr-subtitle-server.exe'))) {
-      portableDir = path.join(userDir, 'Documents', 'Pr-Subtitle-Recognition', 'portable');
-    }
-    if (fs.existsSync(path.join(portableDir, 'pr-subtitle-server.exe'))) {
-      var vbs = path.join(portableDir, '启动服务(静默).vbs');
-      if (cp && fs.existsSync(vbs)) {
-        cp.exec('wscript //B "' + vbs + '"', function () {});
-        setStatus('正在启动服务…');
-        var n = 0, t = setInterval(function () {
-          n++;
-          fetch('http://127.0.0.1:8765/health').then(function () { clearInterval(t); checkServer(); setStatus('服务已启动。'); })
-            .catch(function () { if (n >= 12) { clearInterval(t); updateServerButtons(false); setStatus('启动超时，请手动双击 portable 里的 启动服务(静默).vbs。', true); } });
-        }, 1000);
-      } else {
-        setStatus('请手动运行 portable 目录中的 启动服务.bat 或 启动服务(静默).vbs。', true);
-        cp && cp.exec('explorer "' + portableDir + '"');
-      }
-    } else {
-      setStatus('未找到 portable 目录。请先从 GitHub 下载 portable.zip 并解压。', true);
+    if (cp) {
+      ['Desktop', 'Downloads', 'Documents'].forEach(function (d) {
+        var dir = path.join(userDir, d);
+        if (fs.existsSync(dir)) cp.exec('explorer "' + dir + '"');
+      });
     }
   });
 
