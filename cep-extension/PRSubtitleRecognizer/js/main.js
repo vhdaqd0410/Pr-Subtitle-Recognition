@@ -69,49 +69,35 @@
 
   startBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    if (!cp) { setStatus('当前环境不支持启动服务，请手动运行 start.bat。', true); return; }
-    if (serverProc) { setStatus('服务已在启动中…'); return; }
-    // Find exe relative to the CEP extension install path
-    var exeDir = process.env.PORTABLE_DIR || '';
-    if (!exeDir) {
-      // Default: look for portable folder at common locations
-      var userDir = process.env.USERPROFILE || '';
-      var candidates = [
-        path.join(fs.realpathSync ? fs.realpathSync('.') : '', '..', '..', '..', 'portable', 'pr-subtitle-server.exe'),
-        path.join(userDir, 'Documents', 'pr字幕识别', 'portable', 'pr-subtitle-server.exe'),
-        'C:\\pr-subtitle\\portable\\pr-subtitle-server.exe',
-      ];
-      for (var i = 0; i < candidates.length; i++) {
-        if (fs.existsSync(candidates[i])) { exeDir = path.dirname(candidates[i]); break; }
-      }
+    if (!cp) { setStatus('请手动运行 portable 目录中的 启动服务.bat。', true); return; }
+    var userDir = process.env.USERPROFILE || '';
+    var portableDir = path.join(userDir, 'Documents', 'pr字幕识别', 'portable');
+    if (!fs.existsSync(path.join(portableDir, 'pr-subtitle-server.exe'))) {
+      setStatus('未找到 portable 目录，请确保它位于 文档\\pr字幕识别\\portable。', true);
+      return;
     }
-    if (!exeDir) { setStatus('未找到 pr-subtitle-server.exe，请手动启动。', true); return; }
-    setStatus('正在启动服务…');
-    serverProc = cp.spawn(path.join(exeDir, 'pr-subtitle-server.exe'), [], {
-      cwd: exeDir,
-      env: Object.assign({}, process.env, { PR_SUBTITLE_DEVICE: 'cpu' }),
-      windowsHide: true,
-    });
-    serverProc.on('error', function () { serverProc = null; });
-    serverProc.on('exit', function () { serverProc = null; updateServerButtons(false); });
-    setTimeout(function () { checkServer(); }, 2000);
+    setStatus('正在启动服务（约 5 秒）…');
+    var vbs = path.join(portableDir, '启动服务(静默).vbs');
+    cp.exec('wscript "' + vbs + '"', function (err) { if (err) setStatus('启动失败，重试或手动运行 启动服务.bat。', true); });
+    var n = 0;
+    var t = setInterval(function () {
+      n++;
+      fetch('http://127.0.0.1:8765/health').then(function () { clearInterval(t); checkServer(); setStatus('服务已启动。'); })
+        .catch(function () { if (n >= 15) { clearInterval(t); setStatus('启动超时，请检查。', true); } });
+    }, 1000);
   });
 
   stopBtn.addEventListener('click', function (e) {
     e.preventDefault();
     setStatus('正在停止服务…');
     fetch('http://127.0.0.1:8765/shutdown', { method: 'POST' }).catch(function () {});
-    if (serverProc) { serverProc.kill(); serverProc = null; }
-    // Fallback taskkill
-    setTimeout(function () {
-      cp && cp.exec('taskkill /F /IM pr-subtitle-server.exe', function () {});
-      checkServer();
-    }, 1500);
+    cp && cp.exec('taskkill /F /IM pr-subtitle-server.exe 2>nul');
+    setTimeout(function () { checkServer(); }, 2000);
   });
 
   dashBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    cp && cp.exec('start http://127.0.0.1:8765/dashboard');
+    cp && cp.exec('start http://127.0.0.1:8765/dashboard' + (new Date()).getTime());
   });
 
   // ── Config persistence ──────────────────────
