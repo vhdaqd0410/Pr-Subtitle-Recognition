@@ -1,152 +1,136 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://127.0.0.1:8765; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:8765">
-    <title>PR 字幕识别</title>
-    <link rel="stylesheet" href="css/style.css">
-  </head>
-  <body>
-    <main>
-      <div class="header">
-        <h1>PR 字幕识别</h1>
-        <span id="version">v1.0</span>
-        <span id="server-dot" class="dot off" title="服务状态"></span>
-        <a href="#" id="server-start" title="启动服务" style="display:none;font-size:20px;text-decoration:none;margin-left:4px;color:#4caf50">▶</a>
-        <a href="#" id="server-stop" title="停止服务" style="display:none;font-size:16px;text-decoration:none;margin-left:2px;color:#f66">⏹</a>
-        <a href="#" id="server-dashboard" title="后台管理" style="display:none;font-size:11px;color:#888;text-decoration:none;margin-left:2px">后台</a>
-      </div>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' http://127.0.0.1:8765; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:8765">
+<title>PR 字幕识别</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+<header>
+  <h1>PR 字幕识别</h1>
+  <span class="ver" id="version">v3.0</span>
+  <span class="spacer"></span>
+  <span class="srv-ctl">
+    <span class="srv-dot off" id="srv-dot" title="服务状态"></span>
+    <button class="srv-btn start" id="srv-start" style="display:none" title="启动服务">▶</button>
+    <button class="srv-btn stop" id="srv-stop" style="display:none" title="停止服务">⏹</button>
+    <a class="srv-btn dash" id="srv-dash" style="display:none" title="后台管理">后台</a>
+  </span>
+</header>
 
-      <div class="card">
-        <p id="sequence-name">请先在 Premiere 中打开一个序列</p>
-      </div>
+<div class="card card-seq"><p id="sequence-name">请先在 Premiere 中打开一个序列</p></div>
 
-      <div class="card" id="preset-card">
-        <div class="row">
-          <label style="flex:1">预设
-            <select id="preset-select"><option value="">-- 加载预设 --</option></select>
-          </label>
-          <button id="preset-save" class="secondary" style="flex:0;width:auto;padding:6px 12px;font-size:12px;margin-top:16px">保存当前</button>
-          <button id="preset-del" class="secondary" style="flex:0;width:auto;padding:6px 12px;font-size:12px;margin-top:16px">删除</button>
-        </div>
-      </div>
+<div class="card">
+  <div class="row">
+    <label>预设
+      <select id="preset-select"><option value="">加载预设…</option></select>
+    </label>
+    <button class="btn btn-secondary btn-sm" id="preset-save" style="width:auto;margin-top:16px">保存</button>
+    <button class="btn btn-secondary btn-sm" id="preset-del" style="width:auto;margin-top:16px">删除</button>
+  </div>
+</div>
 
-      <div class="card">
-        <div class="row">
-          <label>识别方式 <select id="provider"><option value="local">本地模型</option><option value="openai">在线 API</option></select></label>
-          <label>导出范围 <select id="range"><option value="all">全部时间轴</option><option value="work">入点 - 出点</option><option value="selected">选中片段</option></select></label>
-        </div>
-        <div class="row">
-          <label>语言 <select id="language"><option value="auto">自动检测</option><option value="zh">中文</option><option value="en">英文</option><option value="ja">日文</option><option value="ko">韩文</option></select></label>
-          <label id="local-options">本地模型 <select id="model"><option value="tiny">tiny</option><option value="base">base</option><option value="small" selected>small</option><option value="medium">medium</option><option value="large-v3">large-v3</option></select></label>
-        </div>
-        <div id="api-options" style="display:none">
-          <label>API 地址 <input type="text" id="api-base" placeholder="https://api.openai.com/v1"></label>
-          <label>API Key <input type="password" id="api-key" placeholder="sk-..."></label>
-          <label>模型名 <input type="text" id="api-model" value="whisper-1"></label>
-        </div>
-      </div>
+<div class="card">
+  <div class="row">
+    <label>识别方式 <select id="provider"><option value="local">本地模型</option><option value="openai">在线 API</option></select></label>
+    <label>导出范围 <select id="range"><option value="all">全部时间轴</option><option value="work">入点 - 出点</option><option value="selected">选中片段</option></select></label>
+  </div>
+  <div class="row">
+    <label>语言 <select id="language"><option value="auto">自动检测</option><option value="zh">中文</option><option value="en">英文</option><option value="ja">日文</option><option value="ko">韩文</option></select></label>
+    <label id="local-options">本地模型 <select id="model"><option value="tiny">tiny</option><option value="base">base</option><option value="small" selected>small</option><option value="medium">medium</option><option value="large-v3">large-v3</option></select></label>
+  </div>
+  <div id="api-options" style="display:none">
+    <label>API 地址 <input type="text" id="api-base" placeholder="https://api.openai.com/v1"></label>
+    <label>API Key <input type="password" id="api-key" placeholder="sk-..."></label>
+    <label>模型名 <input type="text" id="api-model" value="whisper-1"></label>
+  </div>
+</div>
 
-      <div class="btn-row">
-        <button id="transcribe" class="primary" title="F5">🎤 开始识别 (F5)</button>
-        <label class="toggle" title="识别项目内所有序列"><input type="checkbox" id="batch-mode"> 批量</label>
-      </div>
+<div class="btn-row">
+  <button id="transcribe" class="btn btn-primary">🎤 开始识别 (F5)</button>
+  <label class="toggle-label"><input type="checkbox" id="batch-mode"> 批量</label>
+</div>
 
-      <div id="batch-list" class="card" style="display:none">
-        <div style="margin-bottom:4px">
-          <a href="#" id="batch-select-all" style="font-size:11px;color:#5a9cf8;margin-right:8px">全选</a>
-          <a href="#" id="batch-deselect-all" style="font-size:11px;color:#888">取消全选</a>
-          <span style="font-size:11px;color:#666;margin-left:8px" id="batch-count"></span>
-        </div>
-        <div id="batch-sequences" style="max-height:120px;overflow-y:auto"></div>
-      </div>
+<div id="batch-list" class="card" style="display:none">
+  <div class="batch-links">
+    <a href="#" id="batch-select-all">全选</a>
+    <a href="#" id="batch-deselect-all">取消全选</a>
+    <span id="batch-count"></span>
+  </div>
+  <div id="batch-sequences"></div>
+</div>
 
-      <div id="progress-area" style="display:none">
-        <div class="progress-bar"><div id="progress-fill"></div></div>
-        <p id="progress-text">0%</p>
-      </div>
+<div id="progress-area">
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <p class="progress-pct" id="progress-pct">0%</p>
+</div>
 
-      <p id="status" role="status">请先启动本地服务，然后点击上方按钮开始。</p>
+<p id="status">请先启动服务，再点击上方按钮开始。</p>
 
-      <textarea id="result" placeholder="识别结果将显示在此处…&#10;&#10;可直接编辑后导入。"></textarea>
+<textarea id="result" placeholder="识别结果将显示在此处……可直接编辑后导入。"></textarea>
 
-      <div class="card" id="translate-card" style="display:none">
-        <div class="row">
-          <label style="flex:1">翻译为
-            <select id="translate-target">
-              <option value="en">英文</option>
-              <option value="zh">中文</option>
-              <option value="ja">日文</option>
-              <option value="ko">韩文</option>
-            </select>
-          </label>
-        </div>
-        <div class="row" style="margin-bottom:8px">
-          <input type="file" id="translate-file" accept=".srt" style="display:none">
-          <button id="translate-file-btn" class="secondary" style="flex:0;width:auto;padding:5px 12px;font-size:11px">选择 SRT 文件</button>
-          <span id="translate-file-name" style="font-size:11px;color:#888;align-self:center"></span>
-          <span style="font-size:11px;color:#666;margin:0 6px;align-self:center">或</span>
-          <select id="translate-project-srt" style="flex:1;margin-top:0">
-            <option value="">项目中的 SRT…</option>
-          </select>
-        </div>
-        <div id="translate-config" style="display:none">
-          <div class="row">
-            <label style="flex:1">API 服务
-              <select id="translate-api-preset">
-                <option value="">自定义</option>
-                <option value="DeepSeek">DeepSeek</option>
-                <option value="OpenAI">OpenAI</option>
-                <option value="Groq">Groq</option>
-                <option value="SiliconFlow">SiliconFlow</option>
-              </select>
-            </label>
-            <label style="flex:1">模型
-              <select id="translate-model-preset">
-                <option value="">自定义</option>
-                <option value="deepseek-chat">deepseek-chat</option>
-                <option value="deepseek-v4-pro" data-api="DeepSeek">deepseek-v4-pro</option>
-                <option value="deepseek-v4-flash" data-api="DeepSeek">deepseek-v4-flash</option>
-                <option value="gpt-4o-mini" data-api="OpenAI">gpt-4o-mini</option>
-                <option value="gpt-3.5-turbo" data-api="OpenAI">gpt-3.5-turbo</option>
-                <option value="llama-3.3-70b-versatile" data-api="Groq">llama-3.3-70b</option>
-                <option value="Qwen/Qwen2.5-7B-Instruct" data-api="SiliconFlow">Qwen2.5-7B</option>
-              </select>
-              <input type="text" id="translate-model" style="display:none" placeholder="自定义模型名">
-            </label>
-          </div>
-          <div class="row">
-            <label style="flex:1">API 地址
-              <input type="text" id="translate-api-base" placeholder="https://api.deepseek.com/v1">
-            </label>
-            <label style="flex:1">API Key
-              <input type="password" id="translate-api-key" placeholder="sk-...">
-              <button id="translate-save" class="secondary" style="padding:6px 14px;font-size:12px;margin-top:3px;width:auto">保存配置</button>
-            </label>
-          </div>
-        </div>
-        <div class="row" id="translate-ready" style="display:none">
-          <label style="flex:0;display:flex;align-items:flex-end">
-            <span id="translate-status-text" style="font-size:11px;color:#888;white-space:nowrap"></span>
-            <a href="#" id="translate-edit" style="font-size:11px;color:#666;margin-left:4px">修改</a>
-          </label>
-          <button id="translate-btn" class="secondary" style="flex:0;width:auto;padding:6px 14px;font-size:12px">翻译</button>
-        </div>
-      </div>
+<div class="card" id="translate-card" style="display:none">
+  <div class="row">
+    <label>翻译为
+      <select id="translate-target"><option value="en">英文</option><option value="zh">中文</option><option value="ja">日文</option><option value="ko">韩文</option></select>
+    </label>
+  </div>
+  <div class="row">
+    <button class="btn btn-secondary btn-sm" id="translate-file-btn" style="width:auto">选择 SRT</button>
+    <span id="translate-file-name"></span>
+    <span style="font-size:11px;color:var(--dim);align-self:center">或</span>
+    <select id="translate-project-srt" style="flex:1;margin-top:0"><option value="">项目中的 SRT…</option></select>
+    <input type="file" id="translate-file" accept=".srt" style="display:none">
+  </div>
+  <div id="translate-config" style="display:none">
+    <div class="row">
+      <label>API 服务
+        <select id="translate-api-preset"><option value="">自定义</option><option value="DeepSeek">DeepSeek</option><option value="OpenAI">OpenAI</option><option value="Groq">Groq</option><option value="SiliconFlow">SiliconFlow</option></select>
+      </label>
+      <label>模型
+        <select id="translate-model-preset">
+          <option value="">自定义</option>
+          <option value="deepseek-v4-pro" data-api="DeepSeek">deepseek-v4-pro</option>
+          <option value="deepseek-v4-flash" data-api="DeepSeek">deepseek-v4-flash</option>
+          <option value="gpt-4o-mini" data-api="OpenAI">gpt-4o-mini</option>
+          <option value="gpt-3.5-turbo" data-api="OpenAI">gpt-3.5-turbo</option>
+          <option value="llama-3.3-70b" data-api="Groq">llama-3.3-70b</option>
+          <option value="Qwen2.5-7B" data-api="SiliconFlow">Qwen2.5-7B</option>
+        </select>
+        <input type="text" id="translate-model" style="display:none" placeholder="自定义模型名">
+      </label>
+    </div>
+    <div class="row">
+      <label>API 地址 <input type="text" id="translate-api-base" placeholder="https://api.deepseek.com/v1"></label>
+      <label>API Key <input type="password" id="translate-api-key" placeholder="sk-...">
+        <button class="btn btn-secondary btn-sm" id="translate-save" style="width:auto;margin-top:3px">保存</button>
+      </label>
+    </div>
+  </div>
+  <div class="row" id="translate-ready" style="display:none">
+    <label style="flex:0;display:flex;align-items:flex-end;gap:4px">
+      <span id="translate-status-text" style="font-size:11px;color:var(--dim)"></span>
+      <a class="link link-dim" id="translate-edit" href="#">修改</a>
+    </label>
+    <button class="btn btn-secondary btn-sm" id="translate-btn" style="width:auto">翻译</button>
+  </div>
+</div>
 
-      <div class="card" id="history-card" style="display:none">
-        <div class="row">
-          <label>历史记录 <select id="history-select"><option value="">-- 选择 --</option></select></label>
-          <button id="history-clear" class="secondary" style="flex:0;width:auto;padding:6px 12px;font-size:12px;margin-top:16px">清空</button>
-        </div>
-      </div>
+<div class="card" id="history-card" style="display:none">
+  <div class="row">
+    <label>历史记录 <select id="history-select"><option value="">选择历史…</option></select></label>
+    <button class="btn btn-secondary btn-sm" id="history-clear" style="width:auto;margin-top:16px">清空</button>
+  </div>
+</div>
 
-      <div class="btn-row">
-        <button id="add-captions" disabled>添加到当前序列</button>
-        <button id="export-srt" class="secondary" disabled title="Ctrl+S">导出 SRT (Ctrl+S)</button>
-      </div>
-    </main>
-    <script src="js/CSInterface.js"></script>
-    <script src="js/main.js"></script>
-  </body>
+<div class="btn-row">
+  <button id="add-captions" class="btn btn-secondary" disabled>添加到当前序列</button>
+  <button id="export-srt" class="btn btn-secondary" disabled title="Ctrl+S">导出 SRT (Ctrl+S)</button>
+</div>
+</main>
+<script src="js/CSInterface.js"></script>
+<script src="js/main.js"></script>
+</body>
 </html>

@@ -23,9 +23,9 @@
   var exportSrt = document.getElementById('export-srt');
   var sequenceName = document.getElementById('sequence-name');
   var progressFill = document.getElementById('progress-fill');
-  var progressText = document.getElementById('progress-text');
+  var progressText = document.getElementById('progress-pct');
   var progressArea = document.getElementById('progress-area');
-  var serverDot = document.getElementById('server-dot');
+  var serverDot = document.getElementById('srv-dot');
   var versionEl = document.getElementById('version');
   var csInterface = new CSInterface();
   var srtPath = '';
@@ -49,25 +49,25 @@
   // ── Init ────────────────────────────────────
   evalHost('prSubtitlePluginVersion()').then(function (v) {
     if (v) versionEl.textContent = 'v' + v;
-    serverDot.className = 'dot on';
+    serverDot.className = 'srv-dot on';
     serverDot.title = 'Premiere 已连接';
   }).catch(function () {});
 
   // ── Server start/stop ────────────────────────
   var cp;
   try { cp = require('child_process'); } catch (_) { cp = null; }
-  var startBtn = document.getElementById('server-start');
-  var stopBtn = document.getElementById('server-stop');
-  var dashBtn = document.getElementById('server-dashboard');
+  var startBtn = document.getElementById('srv-start');
+  var stopBtn = document.getElementById('srv-stop');
+  var dashBtn = document.getElementById('srv-dash');
   var serverProc = null;
 
   function updateServerButtons(running) {
     if (running) {
-      serverDot.className = 'dot on'; serverDot.title = '服务运行中';
+      serverDot.className = 'srv-dot on'; serverDot.title = '服务运行中';
       startBtn.style.display = 'none';
       stopBtn.style.display = ''; dashBtn.style.display = '';
     } else {
-      serverDot.className = 'dot off'; serverDot.title = '服务未启动';
+      serverDot.className = 'srv-dot off'; serverDot.title = '服务未启动';
       startBtn.style.display = '';
       stopBtn.style.display = 'none'; dashBtn.style.display = 'none';
     }
