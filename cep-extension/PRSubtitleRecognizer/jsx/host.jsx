@@ -1,3 +1,23 @@
+// JSON polyfill for older Premiere versions
+if (typeof JSON === 'undefined') {
+    var JSON = {
+        stringify: function (obj) {
+            if (obj === null || obj === undefined) return 'null';
+            if (typeof obj === 'string') return '"' + obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+            if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+            if (obj instanceof Array) {
+                var a = []; for (var i = 0; i < obj.length; i++) a.push(JSON.stringify(obj[i])); return '[' + a.join(',') + ']';
+            }
+            if (typeof obj === 'object') {
+                var p = []; for (var k in obj) { if (obj.hasOwnProperty(k)) p.push(JSON.stringify(k) + ':' + JSON.stringify(obj[k])); }
+                return '{' + p.join(',') + '}';
+            }
+            return 'null';
+        },
+        parse: function (str) { return eval('(' + str + ')'); }
+    };
+}
+
 function prSubtitlePluginVersion() { return "3.0.0"; }
 
 function prSubtitleListSequences() {
