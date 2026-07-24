@@ -27,6 +27,8 @@ Premiere Pro CEP 扩展面板。序列音频 → 语音识别 → SRT 字幕 →
   网盘链接：
 「PR字幕识别3.0.zip」
   链接：https://pan.quark.cn/s/748d1578cf15
+  
+
   PR字幕识别3.0.zip
   链接: https://pan.baidu.com/s/1OynaKxTL3Nd4AJ3aeL_HPQ 提取码: 8wys 
 
